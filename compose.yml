@@ -1,0 +1,10 @@
+services:
+  db:
+    image: postgres:15
+    container_name: beauty_postgres
+    environment:
+      POSTGRES_USER: usuario
+      POSTGRES_PASSWORD: senha123
+      POSTGRES_DB: meubanco
+    ports:
+      - "5432:5432"
