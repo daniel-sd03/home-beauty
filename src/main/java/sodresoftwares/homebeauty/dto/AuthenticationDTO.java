@@ -1,4 +1,4 @@
-package sodresoftwares.homebeauty.model.user;
+package sodresoftwares.homebeauty.dto;
 
 public record AuthenticationDTO(String login, String password) {
 }

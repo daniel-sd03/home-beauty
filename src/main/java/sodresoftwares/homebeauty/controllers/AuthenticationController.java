@@ -9,10 +9,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import sodresoftwares.homebeauty.dto.AuthenticationDTO;
+import sodresoftwares.homebeauty.dto.LoginResponseDTO;
+import sodresoftwares.homebeauty.dto.RegisterDTO;
 import sodresoftwares.homebeauty.infra.security.TokenService;
-import sodresoftwares.homebeauty.model.user.AuthenticationDTO;
-import sodresoftwares.homebeauty.model.user.LoginResponseDTO;
-import sodresoftwares.homebeauty.model.user.RegisterDTO;
 import sodresoftwares.homebeauty.model.user.User;
 import sodresoftwares.homebeauty.repositories.UserRepository;
 
