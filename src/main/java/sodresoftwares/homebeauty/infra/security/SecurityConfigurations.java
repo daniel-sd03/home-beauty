@@ -32,6 +32,7 @@ public class SecurityConfigurations {
 				.authorizeHttpRequests(authrize -> authrize
 						.requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
 						.requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
+						.requestMatchers("/error").permitAll()
 						.anyRequest().authenticated()
 				)
 		        .exceptionHandling(exception -> 
