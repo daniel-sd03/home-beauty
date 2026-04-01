@@ -1,6 +1,7 @@
 package sodresoftwares.homebeauty.controllers;
 
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -11,10 +12,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import sodresoftwares.homebeauty.dto.AuthenticationDTO;
 import sodresoftwares.homebeauty.dto.LoginResponseDTO;
+import sodresoftwares.homebeauty.dto.ProfessionalRegisterDTO;
 import sodresoftwares.homebeauty.dto.RegisterDTO;
 import sodresoftwares.homebeauty.infra.security.TokenService;
 import sodresoftwares.homebeauty.model.user.User;
 import sodresoftwares.homebeauty.repositories.UserRepository;
+import sodresoftwares.homebeauty.services.ProfessionalProfileService;
 
 
 @RestController
@@ -24,12 +27,14 @@ public class AuthenticationController {
 	private final TokenService tokenService;
 	private final AuthenticationManager authenticationManager;
 	private final UserRepository userRepository;
+	private final ProfessionalProfileService professionalProfileService;
 
 	public AuthenticationController(AuthenticationManager authenticationManager, UserRepository userRepository,
-			TokenService tokenService) {
+			TokenService tokenService, ProfessionalProfileService professionalProfileService) {
 		this.authenticationManager = authenticationManager;
 		this.userRepository = userRepository;
 		this.tokenService = tokenService;
+		this.professionalProfileService = professionalProfileService;
 	}
 	
 	@PostMapping("/login")
@@ -58,5 +63,11 @@ public class AuthenticationController {
 		
 		 this.userRepository.save(newUser);
 		 return ResponseEntity.ok().build();
+	}
+
+	@PostMapping("/register/professional")
+	public ResponseEntity<Void> registerNewProfessional(@RequestBody @Valid ProfessionalRegisterDTO data) {
+		professionalProfileService.registerNewProfessional(data);
+		return ResponseEntity.status(HttpStatus.CREATED).build();
 	}
 }
