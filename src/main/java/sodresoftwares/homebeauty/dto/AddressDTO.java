@@ -3,7 +3,10 @@ package sodresoftwares.homebeauty.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public record AddressRequestDTO(
+public record AddressDTO(
+        String
+        id,
+
         @NotBlank(message = "Street is required")
         String street,
 
