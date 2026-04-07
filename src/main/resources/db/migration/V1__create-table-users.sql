@@ -56,13 +56,13 @@ CREATE TABLE addresses (
 CREATE TABLE working_hours (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
     professional_id TEXT NOT NULL,
-    day_of_week INTEGER NOT NULL,
+    day_of_week TEXT NOT NULL,
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     CONSTRAINT fk_working_hours_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id)
 );
 
-CREATE TABLE services (
+CREATE TABLE provided_services (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
     professional_id TEXT NOT NULL,
     category_id TEXT NOT NULL,
@@ -79,7 +79,7 @@ CREATE TABLE appointments (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
     client_id TEXT NOT NULL,
     professional_id TEXT NOT NULL,
-    service_id TEXT NOT NULL,
+    provided_services_id TEXT NOT NULL,
     address_id TEXT,
     appointment_type TEXT NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
@@ -89,7 +89,7 @@ CREATE TABLE appointments (
     notes TEXT,
     CONSTRAINT fk_appointment_client FOREIGN KEY (client_id) REFERENCES users(id),
     CONSTRAINT fk_appointment_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id),
-    CONSTRAINT fk_appointment_service FOREIGN KEY (service_id) REFERENCES services(id),
+    CONSTRAINT fk_appointment_provided_services_id FOREIGN KEY (provided_services_id) REFERENCES provided_services(id),
     CONSTRAINT fk_appointment_address FOREIGN KEY (address_id) REFERENCES addresses(id)
 );
 
