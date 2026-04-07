@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import sodresoftwares.homebeauty.model.user.User;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Entity
 @Table(name = "professional_profiles")
@@ -29,4 +30,10 @@ public class ProfessionalProfile {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @OneToMany(mappedBy = "professional", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProvidedService> services;
+
+    @OneToMany(mappedBy = "professional", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<WorkingHour> workingHours;
 }

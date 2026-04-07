@@ -5,14 +5,14 @@ import lombok.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "services")
+@Table(name = "provided_services")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(of = "id")
-public class Service {
+public class ProvidedService {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
