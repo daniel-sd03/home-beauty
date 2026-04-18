@@ -1,4 +1,4 @@
--- 1. Tabelas Base (Não dependem de nenhuma outra tabela)
+-- 1. Base Tables (Do not depend on any other table)
 CREATE TABLE users (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
     name TEXT,
@@ -6,6 +6,9 @@ CREATE TABLE users (
     password TEXT NOT NULL,
     phone TEXT,
     role TEXT NOT NULL,
+    profile_picture_url TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    deletion_requested_at TIMESTAMP DEFAULT NULL,
     dt_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -20,7 +23,7 @@ CREATE TABLE categories (
     name TEXT NOT NULL
 );
 
--- 2. Tabelas de Primeiro Nível de Dependência
+-- 2. First Level Dependency Tables
 CREATE TABLE cities (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,    
     state_id TEXT NOT NULL,
@@ -37,7 +40,7 @@ CREATE TABLE professional_profiles (
     CONSTRAINT fk_profile_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- 3. Tabelas de Segundo Nível de Dependência
+-- 3. Second Level Dependency Tables
 CREATE TABLE addresses (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
     user_id TEXT NOT NULL,
@@ -59,7 +62,7 @@ CREATE TABLE working_hours (
     day_of_week TEXT NOT NULL,
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
-    CONSTRAINT fk_working_hours_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id)
+    CONSTRAINT fk_working_hours_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id) ON DELETE CASCADE
 );
 
 CREATE TABLE provided_services (
@@ -70,30 +73,46 @@ CREATE TABLE provided_services (
     description TEXT,
     price DECIMAL(10, 2) NOT NULL,
     duration_minutes INTEGER NOT NULL,
-    CONSTRAINT fk_service_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id),
+    CONSTRAINT fk_service_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id) ON DELETE CASCADE,
     CONSTRAINT fk_service_category FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 
--- 4. Tabela de Agendamentos (Depende de quase tudo)
+CREATE TABLE service_images (
+    id TEXT PRIMARY KEY UNIQUE NOT NULL,
+    provided_services_id TEXT NOT NULL,
+    image_url TEXT NOT NULL,
+    CONSTRAINT fk_image_service FOREIGN KEY (provided_services_id) REFERENCES provided_services(id) ON DELETE CASCADE
+);
+
+-- 4. Schedule Table (Depends on almost everything)
 CREATE TABLE appointments (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
     client_id TEXT NOT NULL,
     professional_id TEXT NOT NULL,
-    provided_services_id TEXT NOT NULL,
+    provided_services_id TEXT,
     address_id TEXT,
-    appointment_type TEXT NOT NULL,
+
+    -- Snapshot
+    service_name TEXT NOT NULL,
+    category_name TEXT NOT NULL,
+    professional_name TEXT NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
+
+    -- Operational
+    appointment_type TEXT NOT NULL,
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
     status TEXT NOT NULL,
     notes TEXT,
+
+    -- Constraints
     CONSTRAINT fk_appointment_client FOREIGN KEY (client_id) REFERENCES users(id),
-    CONSTRAINT fk_appointment_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id),
-    CONSTRAINT fk_appointment_provided_services_id FOREIGN KEY (provided_services_id) REFERENCES provided_services(id),
-    CONSTRAINT fk_appointment_address FOREIGN KEY (address_id) REFERENCES addresses(id)
+    CONSTRAINT fk_appointment_professional FOREIGN KEY (professional_id) REFERENCES users(id),
+    CONSTRAINT fk_appointment_provided_services_id FOREIGN KEY (provided_services_id) REFERENCES provided_services(id) ON DELETE SET NULL,
+    CONSTRAINT fk_appointment_address FOREIGN KEY (address_id) REFERENCES addresses(id) ON DELETE SET NULL
 );
 
--- 5. Tabela de Avaliações (Depende dos Agendamentos)
+-- 5.Rating Table (Depends on Appointments)
 CREATE TABLE reviews (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
     appointment_id TEXT NOT NULL,
@@ -103,5 +122,5 @@ CREATE TABLE reviews (
     comment TEXT,
     CONSTRAINT fk_review_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id),
     CONSTRAINT fk_review_client FOREIGN KEY (client_id) REFERENCES users(id),
-    CONSTRAINT fk_review_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id)
+    CONSTRAINT fk_review_professional FOREIGN KEY (professional_id) REFERENCES users(id)
 );
