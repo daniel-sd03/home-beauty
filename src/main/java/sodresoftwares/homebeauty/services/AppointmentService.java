@@ -10,6 +10,7 @@ import sodresoftwares.homebeauty.dto.AppointmentCreateDTO;
 import sodresoftwares.homebeauty.dto.AppointmentResponseDTO;
 import sodresoftwares.homebeauty.enums.AppointmentStatus;
 import sodresoftwares.homebeauty.enums.AppointmentType;
+import sodresoftwares.homebeauty.enums.ServiceLocationType;
 import sodresoftwares.homebeauty.model.Address;
 import sodresoftwares.homebeauty.model.Appointment;
 import sodresoftwares.homebeauty.model.ProfessionalProfile;
@@ -18,7 +19,6 @@ import sodresoftwares.homebeauty.model.user.User;
 import sodresoftwares.homebeauty.repositories.AddressRepository;
 import sodresoftwares.homebeauty.repositories.AppointmentRepository;
 import sodresoftwares.homebeauty.repositories.ProvidedServiceRepository;
-import sodresoftwares.homebeauty.repositories.UserRepository;
 
 import java.util.List;
 
@@ -28,7 +28,6 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final ProvidedServiceRepository serviceRepository;
-    private final UserRepository userRepository;
     private final AddressRepository addressRepository;
 
     private User getCurrentUser() {
@@ -47,7 +46,18 @@ public class AppointmentService {
         ProfessionalProfile profile = providedService.getProfessional();
         User professionalUser = profile.getUser();
 
-        // 2. Search the address
+        // 2. Validate if the chosen AppointmentType is allowed by the Service rule
+        ServiceLocationType allowedLocation = providedService.getLocationType();
+        AppointmentType requestedType = dto.appointmentType();
+
+        if (allowedLocation == ServiceLocationType.CLIENT_LOCATION_ONLY && requestedType != AppointmentType.CLIENT_LOCATION) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This service is only available at the client's location.");
+        }
+        if (allowedLocation == ServiceLocationType.PROVIDER_LOCATION_ONLY && requestedType != AppointmentType.PROVIDER_LOCATION) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This service is only available at the professional's location.");
+        }
+
+        // 3. Search the address
         if (dto.addressId() == null || dto.addressId().isBlank()) {
             throw new IllegalArgumentException("Address ID is required.");
         }
@@ -55,23 +65,23 @@ public class AppointmentService {
         Address address = addressRepository.findById(dto.addressId())
                 .orElseThrow(() -> new RuntimeException("Address not found."));
 
-        // 3. Security Validation (Who owns this address?)
-        if (dto.appointmentType() == AppointmentType.HOME_CARE) {
-            // If Home Care, the address owner MUST be the logged-in client
+        // 4. Security Validation (Who owns this address?)
+        if (requestedType == AppointmentType.CLIENT_LOCATION) {
+            // If Client Location, the address owner MUST be the logged-in client
             if (!address.getUser().getId().equals(client.getId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: The Home Care address must belong to the client.");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: The address must belong to the client.");
             }
-        } else if (dto.appointmentType() == AppointmentType.SALON) {
-            // If Salon, the address owner MUST be the professional providing the service
+        } else if (requestedType == AppointmentType.PROVIDER_LOCATION) {
+            // If Provider Location, the address owner MUST be the professional providing the service
             if (!address.getUser().getId().equals(professionalUser.getId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: The Salon address must belong to the selected professional.");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: The address must belong to the selected professional.");
             }
         }
 
-        // 4. Calculate end time based on service duration
+        // 5. Calculate end time based on service duration
         var endTime = dto.startTime().plusMinutes(providedService.getDurationMinutes());
 
-        // 5. Time Conflict Validation (Double-booking prevention)
+        // 6. Time Conflict Validation (Double-booking prevention)
         boolean isTimeSlotTaken = appointmentRepository.hasOverlappingAppointments(
                 professionalUser.getId(),
                 dto.startTime(),
@@ -83,13 +93,13 @@ public class AppointmentService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "The professional already has an appointment scheduled for this time slot.");
         }
 
-        // 5. Build the Appointment with the Snapshot strategy
+        // 7. Build the Appointment with the Snapshot strategy
         Appointment appointment = Appointment.builder()
                 .client(client)
                 .professionalUser(professionalUser)
                 .service(providedService)
                 .address(address)
-                .appointmentType(dto.appointmentType())
+                .appointmentType(requestedType)
                 .startTime(dto.startTime())
                 .endTime(endTime)
                 .status(AppointmentStatus.PENDING)
@@ -100,7 +110,7 @@ public class AppointmentService {
                 .price(providedService.getPrice())
                 .build();
 
-        // 6. Save and return wrapped in a DTO
+        // 8. Save and return wrapped in a DTO
         Appointment savedAppointment = appointmentRepository.save(appointment);
         return new AppointmentResponseDTO(savedAppointment);
     }

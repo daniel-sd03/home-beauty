@@ -35,7 +35,6 @@ CREATE TABLE professional_profiles (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
     user_id TEXT NOT NULL,
     description TEXT,
-    home_service BOOLEAN DEFAULT FALSE,
     average_rating DECIMAL(3, 2) DEFAULT 0.00,
     CONSTRAINT fk_profile_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
@@ -69,6 +68,7 @@ CREATE TABLE provided_services (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
     professional_id TEXT NOT NULL,
     category_id TEXT NOT NULL,
+    location_type TEXT NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) NOT NULL,
@@ -107,7 +107,7 @@ CREATE TABLE appointments (
 
     -- Constraints
     CONSTRAINT fk_appointment_client FOREIGN KEY (client_id) REFERENCES users(id),
-    CONSTRAINT fk_appointment_professional FOREIGN KEY (professional_id) REFERENCES users(id),
+    CONSTRAINT fk_appointment_professional FOREIGN KEY (professional_user_id) REFERENCES users(id),
     CONSTRAINT fk_appointment_provided_services_id FOREIGN KEY (provided_services_id) REFERENCES provided_services(id) ON DELETE SET NULL,
     CONSTRAINT fk_appointment_address FOREIGN KEY (address_id) REFERENCES addresses(id) ON DELETE SET NULL
 );
@@ -122,5 +122,5 @@ CREATE TABLE reviews (
     comment TEXT,
     CONSTRAINT fk_review_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id),
     CONSTRAINT fk_review_client FOREIGN KEY (client_id) REFERENCES users(id),
-    CONSTRAINT fk_review_professional FOREIGN KEY (professional_id) REFERENCES users(id)
+    CONSTRAINT fk_review_professional FOREIGN KEY (professional_user_id) REFERENCES users(id)
 );
