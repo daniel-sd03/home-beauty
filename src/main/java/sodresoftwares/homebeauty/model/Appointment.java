@@ -2,6 +2,8 @@ package sodresoftwares.homebeauty.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import sodresoftwares.homebeauty.enums.AppointmentStatus;
+import sodresoftwares.homebeauty.enums.AppointmentType;
 import sodresoftwares.homebeauty.model.user.User;
 
 import java.math.BigDecimal;
@@ -20,36 +22,50 @@ public class Appointment {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    // --- Date Operational ---
+    @Enumerated(EnumType.STRING)
     @Column(name = "appointment_type", nullable = false)
-    private String appointmentType; // Pode virar um Enum (ex: HOME_CARE, SALON)
-
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal price;
+    private AppointmentType appointmentType;
 
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 
     @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
-
+    
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status; // Pode virar um Enum (ex: PENDING, CONFIRMED, CANCELLED)
+    private AppointmentStatus status;
 
     private String notes;
 
+    // --- Date do Snapshot ---
+    @Column(name = "service_name", nullable = false)
+    private String serviceName;
+
+    @Column(name = "category_name", nullable = false)
+    private String categoryName;
+
+    @Column(name = "professional_name", nullable = false)
+    private String professionalName;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal price;
+
+    // --- Relacionamentos ---
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
     private User client;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "professional_id", nullable = false)
-    private ProfessionalProfile professional;
+    @JoinColumn(name = "professional_user_id", nullable = false) // Aponta para User!
+    private User professionalUser;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_id", nullable = false)
+    @JoinColumn(name = "provided_services_id") // Permite nulo (ON DELETE SET NULL)
     private ProvidedService service;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "address_id") // Pode ser nulo
+    @JoinColumn(name = "address_id") // Permite nulo (ON DELETE SET NULL)
     private Address address;
 }
