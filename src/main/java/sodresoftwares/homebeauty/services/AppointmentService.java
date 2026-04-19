@@ -20,6 +20,7 @@ import sodresoftwares.homebeauty.repositories.AddressRepository;
 import sodresoftwares.homebeauty.repositories.AppointmentRepository;
 import sodresoftwares.homebeauty.repositories.ProvidedServiceRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -36,9 +37,10 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponseDTO createAppointment(AppointmentCreateDTO dto) {
-        // 1. Get the current User
+        // Get the current User
         User client = getCurrentUser();
 
+        //get the provided service and validate if it exists
         ProvidedService providedService = serviceRepository.findById(dto.providedServicesId())
                 .orElseThrow(() -> new RuntimeException("Service not found."));
 
@@ -46,52 +48,17 @@ public class AppointmentService {
         ProfessionalProfile profile = providedService.getProfessional();
         User professionalUser = profile.getUser();
 
-        // 2. Validate if the chosen AppointmentType is allowed by the Service rule
-        ServiceLocationType allowedLocation = providedService.getLocationType();
-        AppointmentType requestedType = dto.appointmentType();
+        // Validate if the chosen AppointmentType is allowed by the Service rule
+        AppointmentType requestedType = validateAndGetAppointmentType(dto, providedService);
 
-        if (allowedLocation == ServiceLocationType.CLIENT_LOCATION_ONLY && requestedType != AppointmentType.CLIENT_LOCATION) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This service is only available at the client's location.");
-        }
-        if (allowedLocation == ServiceLocationType.PROVIDER_LOCATION_ONLY && requestedType != AppointmentType.PROVIDER_LOCATION) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This service is only available at the professional's location.");
-        }
+        // Resolve and Validate Address (Extracted Method)
+        Address address = resolveAndValidateAddress(dto.addressId(), requestedType, client, professionalUser);
 
-        // 3. Search the address
-        if (dto.addressId() == null || dto.addressId().isBlank()) {
-            throw new IllegalArgumentException("Address ID is required.");
-        }
-
-        Address address = addressRepository.findById(dto.addressId())
-                .orElseThrow(() -> new RuntimeException("Address not found."));
-
-        // 4. Security Validation (Who owns this address?)
-        if (requestedType == AppointmentType.CLIENT_LOCATION) {
-            // If Client Location, the address owner MUST be the logged-in client
-            if (!address.getUser().getId().equals(client.getId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: The address must belong to the client.");
-            }
-        } else if (requestedType == AppointmentType.PROVIDER_LOCATION) {
-            // If Provider Location, the address owner MUST be the professional providing the service
-            if (!address.getUser().getId().equals(professionalUser.getId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: The address must belong to the selected professional.");
-            }
-        }
-
-        // 5. Calculate end time based on service duration
+        // Calculate end time based on service duration
         var endTime = dto.startTime().plusMinutes(providedService.getDurationMinutes());
 
-        // 6. Time Conflict Validation (Double-booking prevention)
-        boolean isTimeSlotTaken = appointmentRepository.hasOverlappingAppointments(
-                professionalUser.getId(),
-                dto.startTime(),
-                endTime,
-                AppointmentStatus.CANCELLED
-        );
-
-        if (isTimeSlotTaken) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "The professional already has an appointment scheduled for this time slot.");
-        }
+        //  Time Conflict Validation
+        validateTimeSlotAvailability(professionalUser.getId(), dto.startTime(), endTime);
 
         // 7. Build the Appointment with the Snapshot strategy
         Appointment appointment = Appointment.builder()
@@ -113,6 +80,64 @@ public class AppointmentService {
         // 8. Save and return wrapped in a DTO
         Appointment savedAppointment = appointmentRepository.save(appointment);
         return new AppointmentResponseDTO(savedAppointment);
+    }
+
+    /**
+     * Validates if the requested appointment type is compatible with the location rules defined by the service.
+     */
+    private AppointmentType validateAndGetAppointmentType(AppointmentCreateDTO dto, ProvidedService providedService) {
+        ServiceLocationType allowedLocation = providedService.getLocationType();
+        AppointmentType requestedType = dto.appointmentType();
+
+        if (allowedLocation == ServiceLocationType.CLIENT_LOCATION_ONLY && requestedType != AppointmentType.CLIENT_LOCATION) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This service is only available at the client's location.");
+        }
+        if (allowedLocation == ServiceLocationType.PROVIDER_LOCATION_ONLY && requestedType != AppointmentType.PROVIDER_LOCATION) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This service is only available at the professional's location.");
+        }
+        return requestedType;
+    }
+
+    /**
+     * Fetches the address from the database and validates if the correct user owns it
+     * based on the requested appointment type.
+     */
+    private Address resolveAndValidateAddress(String addressId, AppointmentType requestedType, User client, User professionalUser) {
+        if (addressId == null || addressId.isBlank()) {
+            throw new IllegalArgumentException("Address ID is required.");
+        }
+
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new RuntimeException("Address not found."));
+
+        if (requestedType == AppointmentType.CLIENT_LOCATION) {
+            // The address owner MUST be the logged-in client
+            if (!address.getUser().getId().equals(client.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: The address must belong to the client.");
+            }
+        } else if (requestedType == AppointmentType.PROVIDER_LOCATION) {
+            // The address owner MUST be the professional providing the service
+            if (!address.getUser().getId().equals(professionalUser.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: The address must belong to the selected professional.");
+            }
+        }
+        return address;
+    }
+
+    /**
+     * Validates if the professional has any overlapping appointments during the requested time slot.
+     */
+    private void validateTimeSlotAvailability(String professionalId, LocalDateTime startTime, LocalDateTime endTime) {
+        boolean isTimeSlotTaken = appointmentRepository.hasOverlappingAppointments(
+                professionalId,
+                startTime,
+                endTime,
+                AppointmentStatus.CANCELLED
+        );
+
+        if (isTimeSlotTaken) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "The professional already has an appointment scheduled for this time slot.");
+        }
     }
 
     @Transactional(readOnly = true)
