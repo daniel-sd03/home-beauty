@@ -3,6 +3,7 @@ package sodresoftwares.homebeauty.dto;
 import sodresoftwares.homebeauty.enums.AppointmentStatus;
 import sodresoftwares.homebeauty.enums.AppointmentType;
 import sodresoftwares.homebeauty.model.Appointment;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -18,7 +19,6 @@ public record AppointmentResponseDTO(
         AppointmentType appointmentType,
         String notes
 ) {
-    // Construtor prático para converter a Entidade em DTO
     public AppointmentResponseDTO(Appointment entity) {
         this(
                 entity.getId(),

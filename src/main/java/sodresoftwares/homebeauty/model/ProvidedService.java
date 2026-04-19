@@ -2,6 +2,8 @@ package sodresoftwares.homebeauty.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import sodresoftwares.homebeauty.enums.ServiceLocationType;
+
 import java.math.BigDecimal;
 
 @Entity
@@ -27,6 +29,10 @@ public class ProvidedService {
 
     @Column(name = "duration_minutes", nullable = false)
     private Integer durationMinutes;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "location_type", nullable = false)
+    private ServiceLocationType locationType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "professional_id", nullable = false)
