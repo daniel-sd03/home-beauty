@@ -1,6 +1,8 @@
 package sodresoftwares.homebeauty.services;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -9,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.dto.AppointmentCreateDTO;
 import sodresoftwares.homebeauty.dto.AppointmentResponseDTO;
 import sodresoftwares.homebeauty.enums.AppointmentStatus;
+import sodresoftwares.homebeauty.enums.AppointmentStatusUpdateDTO;
 import sodresoftwares.homebeauty.enums.AppointmentType;
 import sodresoftwares.homebeauty.enums.ServiceLocationType;
 import sodresoftwares.homebeauty.model.Address;
@@ -26,6 +29,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AppointmentService {
+
+    private static final Logger log = LoggerFactory.getLogger(AppointmentService.class);
 
     private final AppointmentRepository appointmentRepository;
     private final ProvidedServiceRepository serviceRepository;
@@ -185,5 +190,31 @@ public class AppointmentService {
         }
 
         return new AppointmentResponseDTO(appointment);
+    }
+
+    @Transactional
+    public void updateStatus(String id, AppointmentStatusUpdateDTO dto) {
+        log.info("Attempting to update status of appointment ID: {} to {}", id, dto.status());
+
+        //  Get the current User
+        User professional = getCurrentUser();
+
+        // Fetch the appointment
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found."));
+
+        // Verify if the logged user is the owner of the professional appointment
+        if (!appointment.getProfessionalUser().getId().equals(professional.getId())) {
+            log.warn("Security breach attempt: User ID {} tried to modify appointment ID {} owned by User ID {}",
+                    professional.getId(), id, appointment.getProfessionalUser().getId());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to modify this appointment");
+        }
+        // Update the status
+        appointment.setStatus(dto.status());
+
+        // Save to database
+        appointmentRepository.save(appointment);
+
+        log.info("Appointment ID: {} status successfully updated to {}", id, dto.status());
     }
 }
