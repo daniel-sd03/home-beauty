@@ -55,4 +55,16 @@ public class ProfessionalCatalogController {
         catalogService.updateWorkingHour(id, data);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/services/{id}")
+    public ResponseEntity<Void> deleteService(@PathVariable String id) {
+        catalogService.deleteService(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/working-hours/{id}")
+    public ResponseEntity<Void> deleteWorkingHour(@PathVariable String id) {
+        catalogService.deleteWorkingHour(id);
+        return ResponseEntity.noContent().build();
+    }
 }
