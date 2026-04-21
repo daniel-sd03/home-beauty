@@ -113,7 +113,7 @@ public class ProfessionalCatalogService {
         existingService.setDurationMinutes(data.durationMinutes());
         existingService.setCategory(currentCategory);
 
-        // 5. Save to the database (Optional due to @Transactional, but it is a good practice to leave it explicit)
+        // 5. Save to the database
         providedServiceRepository.save(existingService);
     }
 
