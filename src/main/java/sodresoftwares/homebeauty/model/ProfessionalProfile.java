@@ -21,9 +21,6 @@ public class ProfessionalProfile {
 
     private String description;
 
-    @Column(name = "home_service")
-    private Boolean homeService;
-
     @Column(name = "average_rating", precision = 3, scale = 2)
     private BigDecimal averageRating;
 

@@ -1,7 +1,6 @@
 package sodresoftwares.homebeauty.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 public record ProfessionalRegisterDTO(
         @NotBlank(message = "Login is required")
@@ -17,8 +16,5 @@ public record ProfessionalRegisterDTO(
         String phone,
 
         @NotBlank(message = "Description is required")
-        String description,
-
-        @NotNull(message = "Home service info is required")
-        boolean isHomeService
+        String description
 ) {}
