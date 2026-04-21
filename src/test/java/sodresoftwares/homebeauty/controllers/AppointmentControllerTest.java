@@ -27,8 +27,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -260,5 +259,37 @@ class AppointmentControllerTest {
                 .andExpect(jsonPath("$.endTime", notNullValue()))
                 .andExpect(jsonPath("$.status", notNullValue()))
                 .andExpect(jsonPath("$.appointmentType", notNullValue()));
+    }
+
+    @Test
+    @DisplayName("Should return 204 No Content when status is successfully updated")
+    void testUpdateStatus_Success() throws Exception {
+        String appointmentId = "valid-id-123";
+        String validJson = """
+                {
+                    "status": "CONFIRMED"
+                }
+                """;
+
+        mockMvc.perform(patch("/appointments/{id}/status", appointmentId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validJson))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("Should return 400 Bad Request when status is null in DTO")
+    void testUpdateStatus_InvalidDTO() throws Exception {
+        String appointmentId = "valid-id-123";
+        String invalidJson = """
+                {
+                    "status": null
+                }
+                """;
+
+        mockMvc.perform(patch("/appointments/{id}/status", appointmentId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidJson))
+                .andExpect(status().isBadRequest());
     }
 }

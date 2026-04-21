@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sodresoftwares.homebeauty.dto.AppointmentCreateDTO;
 import sodresoftwares.homebeauty.dto.AppointmentResponseDTO;
+import sodresoftwares.homebeauty.enums.AppointmentStatusUpdateDTO;
 import sodresoftwares.homebeauty.services.AppointmentService;
 
 import java.util.List;
@@ -55,5 +56,18 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponseDTO> getAppointmentById(@PathVariable String id) {
         AppointmentResponseDTO appointment = appointmentService.getAppointmentById(id);
         return ResponseEntity.ok(appointment);
+    }
+
+    /**
+     * Updates only the status of an existing appointment.
+     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Void> updateStatus(
+            @PathVariable String id,
+            @Valid @RequestBody AppointmentStatusUpdateDTO dto) {
+
+        appointmentService.updateStatus(id, dto);
+
+        return ResponseEntity.noContent().build();
     }
 }
