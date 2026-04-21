@@ -169,4 +169,38 @@ public class ProfessionalCatalogService {
         // 4. Save to the database
         workingHourRepository.save(existingWorkingHour);
     }
+
+    @Transactional
+    public void deleteService(String serviceId) {
+        ProfessionalProfile professional = getCurrentUserProfile();
+
+        // 1. Find the service by ID
+        ProvidedService existingService = providedServiceRepository.findById(serviceId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
+
+        // 2. SECURITY: Check if the service belongs to the logged-in professional
+        if (!existingService.getProfessional().getId().equals(professional.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to delete this service");
+        }
+
+        // 3. Delete the service
+        providedServiceRepository.delete(existingService);
+    }
+
+    @Transactional
+    public void deleteWorkingHour(String workingHourId) {
+        ProfessionalProfile professional = getCurrentUserProfile();
+
+        // 1. Find the working hour by ID
+        WorkingHour existingWorkingHour = workingHourRepository.findById(workingHourId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Working hour not found"));
+
+        // 2. SECURITY: Check if the working hour belongs to the logged-in professional
+        if (!existingWorkingHour.getProfessional().getId().equals(professional.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to delete this working hour");
+        }
+
+        // 3. Delete the working hour
+        workingHourRepository.delete(existingWorkingHour);
+    }
 }
