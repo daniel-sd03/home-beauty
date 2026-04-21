@@ -42,7 +42,7 @@ public class AppointmentService {
 
         //get the provided service and validate if it exists
         ProvidedService providedService = serviceRepository.findById(dto.providedServicesId())
-                .orElseThrow(() -> new RuntimeException("Service not found."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Provided Service not found."));
 
         // Get the current user professional profile
         ProfessionalProfile profile = providedService.getProfessional();
@@ -104,11 +104,11 @@ public class AppointmentService {
      */
     private Address resolveAndValidateAddress(String addressId, AppointmentType requestedType, User client, User professionalUser) {
         if (addressId == null || addressId.isBlank()) {
-            throw new IllegalArgumentException("Address ID is required.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Address ID is required.");
         }
 
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(() -> new RuntimeException("Address not found."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Address not found."));
 
         if (requestedType == AppointmentType.CLIENT_LOCATION) {
             // The address owner MUST be the logged-in client
@@ -169,7 +169,7 @@ public class AppointmentService {
     @Transactional(readOnly = true)
     public AppointmentResponseDTO getAppointmentById(String id) {
         Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Appointment not found."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found."));
 
         User currentUser = getCurrentUser();
 
