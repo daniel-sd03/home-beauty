@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -47,7 +48,7 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now(),
                 HttpStatus.UNAUTHORIZED.value(),
                 "UNAUTHORIZED",
-                "E-mail ou senha inválidos.",
+                "Invalid email or password.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
@@ -77,6 +78,29 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles exceptions thrown when the framework (Jackson) fails to read or parse the incoming JSON.
+     * This typically occurs due to malformed JSON syntax, invalid Date/Time formats, or incorrect Enum values.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponseDTO> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException ex, HttpServletRequest request) {
+
+        // Logs the specific technical error for developers (visible only in the server console)
+        log.warn("Malformed JSON received at {}: {}", request.getRequestURI(), ex.getMessage());
+
+        // Returns a safe, generic message to the client
+        ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                "Malformed JSON request. Please verify the data format, such as correct date/time patterns (e.g., 'HH:mm'), exact Enum values, and proper JSON syntax.",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    /**
      * Catch-all handler for unexpected server errors (500 Internal Server Error).
      * Captures unhandled RuntimeExceptions, database connection drops, NullPointerExceptions, etc.
      */
@@ -87,7 +111,7 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal Server Error",
-                "Ocorreu um erro inesperado no servidor.",
+                "An unexpected server error occurred.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
