@@ -46,7 +46,6 @@ public class ProfessionalProfileService {
         // Create profile
         ProfessionalProfile profile = ProfessionalProfile.builder()
                 .description(data.description())
-                .homeService(data.isHomeService())
                 .user(newUser)
                 .build();
         profileRepository.save(profile);
@@ -71,7 +70,6 @@ public class ProfessionalProfileService {
         // Create professional profile
         ProfessionalProfile profile = ProfessionalProfile.builder()
                 .description(data.description())
-                .homeService(data.isHomeService())
                 .user(currentUser)
                 .build();
         profileRepository.save(profile);
