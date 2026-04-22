@@ -35,6 +35,9 @@ public class SecurityConfigurations {
 						.requestMatchers(HttpMethod.POST, "/auth/register/professional").permitAll()
 						.requestMatchers("/error").permitAll()
 						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+						.requestMatchers(HttpMethod.PATCH, "/auth/{id}/role/admin").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.PATCH, "/auth/{id}/role/demote").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.GET, "/users/search").hasRole("ADMIN")
 						.anyRequest().authenticated()
 				)
 		        .exceptionHandling(exception -> 

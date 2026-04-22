@@ -2,7 +2,7 @@ package sodresoftwares.homebeauty.services;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,21 +19,24 @@ public class ProfessionalProfileService {
 
     private final UserRepository userRepository;
     private final ProfessionalProfileRepository profileRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public ProfessionalProfileService(UserRepository userRepository, ProfessionalProfileRepository profileRepository) {
+    public ProfessionalProfileService(UserRepository userRepository, ProfessionalProfileRepository profileRepository
+            ,PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
     public void registerNewProfessional(ProfessionalRegisterDTO data) {
         // Check if user already exists
         if (userRepository.findByLogin(data.login()) != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User already exists with this login");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "User already exists with this login");
         }
 
         // Create user
-        String encryptedPassword = new BCryptPasswordEncoder().encode(data.password());
+        String encryptedPassword = passwordEncoder.encode(data.password());
         User newUser = User.builder()
                 .login(data.login())
                 .password(encryptedPassword)
