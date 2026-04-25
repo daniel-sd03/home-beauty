@@ -4,6 +4,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import sodresoftwares.homebeauty.dto.ProfessionalBlockDTO;
+import sodresoftwares.homebeauty.dto.ProfessionalBlockResponseDTO;
 import sodresoftwares.homebeauty.dto.ProvidedServiceDTO;
 import sodresoftwares.homebeauty.dto.WorkingHourDTO;
 import sodresoftwares.homebeauty.services.ProfessionalCatalogService;
@@ -66,5 +68,17 @@ public class ProfessionalCatalogController {
     public ResponseEntity<Void> deleteWorkingHour(@PathVariable String id) {
         catalogService.deleteWorkingHour(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/blocks")
+    public ResponseEntity<Void> createBlock(@RequestBody @Valid ProfessionalBlockDTO data) {
+        catalogService.createBlock(data);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @GetMapping("/blocks")
+    public ResponseEntity<List<ProfessionalBlockResponseDTO>> getMyBlocks() {
+        List<ProfessionalBlockResponseDTO> blocks = catalogService.getMyBlocks();
+        return ResponseEntity.ok(blocks);
     }
 }

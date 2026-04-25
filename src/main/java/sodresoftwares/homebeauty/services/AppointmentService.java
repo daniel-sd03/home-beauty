@@ -10,8 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.dto.AppointmentCreateDTO;
 import sodresoftwares.homebeauty.dto.AppointmentResponseDTO;
+import sodresoftwares.homebeauty.dto.AppointmentStatusUpdateDTO;
 import sodresoftwares.homebeauty.enums.AppointmentStatus;
-import sodresoftwares.homebeauty.enums.AppointmentStatusUpdateDTO;
 import sodresoftwares.homebeauty.enums.AppointmentType;
 import sodresoftwares.homebeauty.enums.ServiceLocationType;
 import sodresoftwares.homebeauty.model.Address;
@@ -132,9 +132,9 @@ public class AppointmentService {
     /**
      * Validates if the professional has any overlapping appointments during the requested time slot.
      */
-    private void validateTimeSlotAvailability(String professionalId, LocalDateTime startTime, LocalDateTime endTime) {
+    private void validateTimeSlotAvailability(String professionalUserId, LocalDateTime startTime, LocalDateTime endTime) {
         boolean isTimeSlotTaken = appointmentRepository.hasOverlappingAppointments(
-                professionalId,
+                professionalUserId,
                 startTime,
                 endTime,
                 AppointmentStatus.CANCELLED

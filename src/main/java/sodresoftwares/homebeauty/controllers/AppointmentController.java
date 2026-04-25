@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sodresoftwares.homebeauty.dto.AppointmentCreateDTO;
 import sodresoftwares.homebeauty.dto.AppointmentResponseDTO;
-import sodresoftwares.homebeauty.enums.AppointmentStatusUpdateDTO;
+import sodresoftwares.homebeauty.dto.AppointmentStatusUpdateDTO;
 import sodresoftwares.homebeauty.services.AppointmentService;
 
 import java.util.List;

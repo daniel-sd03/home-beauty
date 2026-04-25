@@ -5,18 +5,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import sodresoftwares.homebeauty.dto.ProfessionalBlockDTO;
+import sodresoftwares.homebeauty.dto.ProfessionalBlockResponseDTO;
 import sodresoftwares.homebeauty.dto.ProvidedServiceDTO;
 import sodresoftwares.homebeauty.dto.WorkingHourDTO;
-import sodresoftwares.homebeauty.model.Category;
-import sodresoftwares.homebeauty.model.ProfessionalProfile;
-import sodresoftwares.homebeauty.model.ProvidedService;
-import sodresoftwares.homebeauty.model.WorkingHour;
+import sodresoftwares.homebeauty.enums.AppointmentStatus;
+import sodresoftwares.homebeauty.model.*;
 import sodresoftwares.homebeauty.model.user.User;
-import sodresoftwares.homebeauty.repositories.CategoryRepository;
-import sodresoftwares.homebeauty.repositories.ProfessionalProfileRepository;
-import sodresoftwares.homebeauty.repositories.ProvidedServiceRepository;
-import sodresoftwares.homebeauty.repositories.WorkingHourRepository;
+import sodresoftwares.homebeauty.repositories.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -26,15 +24,21 @@ public class ProfessionalCatalogService {
     private final ProvidedServiceRepository providedServiceRepository;
     private final WorkingHourRepository workingHourRepository;
     private final CategoryRepository categoryRepository;
+    private final ProfessionalBlockRepository blockRepository;
+    private final AppointmentRepository appointmentRepository;
 
     public ProfessionalCatalogService(ProfessionalProfileRepository profileRepository,
                                       ProvidedServiceRepository providedServiceRepository,
                                       WorkingHourRepository workingHourRepository,
-                                      CategoryRepository categoryRepository) {
+                                      CategoryRepository categoryRepository,
+                                      ProfessionalBlockRepository blockRepository,
+                                      AppointmentRepository appointmentRepository) {
         this.profileRepository = profileRepository;
         this.providedServiceRepository = providedServiceRepository;
         this.workingHourRepository = workingHourRepository;
         this.categoryRepository = categoryRepository;
+        this.blockRepository = blockRepository;
+        this.appointmentRepository = appointmentRepository;
     }
 
     // Helper method to always get the logged-in professional's profile
@@ -202,5 +206,104 @@ public class ProfessionalCatalogService {
 
         // 3. Delete the working hour
         workingHourRepository.delete(existingWorkingHour);
+    }
+
+    @Transactional
+    public void createBlock(ProfessionalBlockDTO data) {
+        ProfessionalProfile profile = getCurrentUserProfile();
+
+        // Calculate time
+        LocalDateTime checkStart = data.startDateTime().withSecond(0).withNano(0);;
+        LocalDateTime checkEnd = data.endDateTime().withSecond(0).withNano(0);;
+
+        // valide the block timeline (start must be before end, and cannot be in the past,
+        // and a single block cannot exceed 30 days)
+        validateBlockTimeline(checkStart, checkEnd);
+
+        // Check conflict existing appointments
+        validateNoSchedulingConflicts(profile.getUser().getId(), checkStart, checkEnd);
+
+        // Check conflict with existing blocks
+        validateNoOverlappingBlocks(profile.getId(), checkStart, checkEnd);
+
+        ProfessionalBlock newBlock = ProfessionalBlock.builder()
+                .title(data.title())
+                .startDateTime(checkStart)
+                .endDateTime(checkEnd)
+                .professional(profile)
+                .build();
+
+        blockRepository.save(newBlock);
+    }
+
+    private void validateBlockTimeline(LocalDateTime start, LocalDateTime end) {
+        // Set UTC 0
+        LocalDateTime nowUtc = LocalDateTime.now(java.time.ZoneOffset.UTC);
+
+        if (start.isBefore(nowUtc)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Cannot create blocks in the past (UTC 0 reference)."
+            );
+        }
+
+        if (start.isAfter(end) || start.isEqual(end)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "The start date and time must be before the end date and time."
+            );
+        }
+
+        if (java.time.temporal.ChronoUnit.DAYS.between(start, end) > 30) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A single block cannot exceed 30 days."
+            );
+        }
+    }
+
+    private void validateNoSchedulingConflicts(String professionalUserId, LocalDateTime start, LocalDateTime end) {
+        boolean hasConflict = appointmentRepository.hasOverlappingAppointments(
+                professionalUserId,
+                start,
+                end,
+                AppointmentStatus.CANCELLED);
+
+        if (hasConflict) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "It is not possible to block this period because there are already scheduled."
+            );
+        }
+    }
+
+    private void validateNoOverlappingBlocks(String profileId, LocalDateTime start, LocalDateTime end) {
+        boolean hasConflict = blockRepository.hasOverlappingBlocks(
+                profileId,
+                start,
+                end
+        );
+
+        if (hasConflict) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Cannot create block: this period overlaps with an already existing block."
+            );
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProfessionalBlockResponseDTO> getMyBlocks() {
+        ProfessionalProfile profile = getCurrentUserProfile();
+
+        return blockRepository.findByProfessionalIdOrderByStartDateTimeAsc(profile.getId())
+                .stream()
+                .map(block -> new ProfessionalBlockResponseDTO(
+                        block.getId(),
+                        block.getTitle(),
+                        block.getStartDateTime(),
+                        block.getEndDateTime()
+                ))
+                .toList();
     }
 }
