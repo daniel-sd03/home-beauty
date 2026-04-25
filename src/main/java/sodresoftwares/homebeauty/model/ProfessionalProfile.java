@@ -33,4 +33,7 @@ public class ProfessionalProfile {
 
     @OneToMany(mappedBy = "professional", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<WorkingHour> workingHours;
+
+    @OneToMany(mappedBy = "professional", cascade = CascadeType.ALL)
+    private List<ProfessionalBlock> blocks;
 }

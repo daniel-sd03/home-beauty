@@ -39,7 +39,7 @@ public class Appointment {
 
     private String notes;
 
-    // --- Date do Snapshot ---
+    // --- Date Snapshot ---
     @Column(name = "service_name", nullable = false)
     private String serviceName;
 
@@ -52,20 +52,20 @@ public class Appointment {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
-    // --- Relacionamentos ---
+    // --- Renationalisation ---
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
     private User client;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "professional_user_id", nullable = false) // Aponta para User!
+    @JoinColumn(name = "professional_user_id", nullable = false)
     private User professionalUser;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "provided_services_id") // Permite nulo (ON DELETE SET NULL)
+    @JoinColumn(name = "provided_services_id")
     private ProvidedService service;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "address_id") // Permite nulo (ON DELETE SET NULL)
+    @JoinColumn(name = "address_id")
     private Address address;
 }

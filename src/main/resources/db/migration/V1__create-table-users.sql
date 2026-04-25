@@ -64,6 +64,15 @@ CREATE TABLE working_hours (
     CONSTRAINT fk_working_hours_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id) ON DELETE CASCADE
 );
 
+CREATE TABLE professional_blocks (
+    id TEXT PRIMARY KEY NOT NULL,
+    professional_id TEXT NOT NULL,
+    title TEXT,
+    start_date_time TIMESTAMP NOT NULL,
+    end_date_time TIMESTAMP NOT NULL,
+    CONSTRAINT fk_blocks_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id) ON DELETE CASCADE
+);
+
 CREATE TABLE provided_services (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
     professional_id TEXT NOT NULL,

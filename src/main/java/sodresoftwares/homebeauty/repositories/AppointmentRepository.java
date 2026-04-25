@@ -17,12 +17,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, String
 
     // Checks if there's any active appointment that overlaps with the requested time slot
     @Query("SELECT COUNT(a) > 0 FROM Appointment a " +
-            "WHERE a.professionalUser.id = :professionalId " +
+            "WHERE a.professionalUser.id = :professionalUserId " +
             "AND a.status <> :cancelledStatus " +
             "AND a.startTime < :endTime " +
             "AND a.endTime > :startTime")
     boolean hasOverlappingAppointments(
-            @Param("professionalId") String professionalId,
+            @Param("professionalUserId") String professionalUserId,
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime,
             @Param("cancelledStatus") AppointmentStatus cancelledStatus
