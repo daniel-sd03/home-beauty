@@ -118,7 +118,8 @@ CREATE TABLE appointments (
     CONSTRAINT fk_appointment_client FOREIGN KEY (client_id) REFERENCES users(id),
     CONSTRAINT fk_appointment_professional FOREIGN KEY (professional_user_id) REFERENCES users(id),
     CONSTRAINT fk_appointment_provided_services_id FOREIGN KEY (provided_services_id) REFERENCES provided_services(id) ON DELETE SET NULL,
-    CONSTRAINT fk_appointment_address FOREIGN KEY (address_id) REFERENCES addresses(id) ON DELETE SET NULL
+    CONSTRAINT fk_appointment_address FOREIGN KEY (address_id) REFERENCES addresses(id) ON DELETE SET NULL,
+    CONSTRAINT uk_appointment_professional_start_time UNIQUE (professional_user_id, start_time)
 );
 
 -- 5.Rating Table (Depends on Appointments)

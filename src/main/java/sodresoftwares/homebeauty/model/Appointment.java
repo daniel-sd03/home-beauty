@@ -10,13 +10,21 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "appointments")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(of = "id")
+@Table(
+        name = "appointments",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_appointment_professional_start_time",
+                        columnNames = {"professional_user_id", "start_time"}
+                )
+        }
+)
 public class Appointment {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

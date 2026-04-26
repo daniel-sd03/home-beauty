@@ -27,4 +27,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, String
             @Param("endTime") LocalDateTime endTime,
             @Param("cancelledStatus") AppointmentStatus cancelledStatus
     );
+
+    //get all appointments for a professional on a specific day, excluding canceled ones
+    @Query("SELECT a FROM Appointment a " +
+            "WHERE a.professionalUser.id = :professionalUserId " +
+            "AND a.status <> :cancelledStatus " +
+            "AND a.startTime >= :startOfDay " +
+            "AND a.endTime <= :endOfDay")
+    List<Appointment> findActiveAppointmentsByDay(
+            @Param("professionalUserId") String professionalUserId,
+            @Param("startOfDay") LocalDateTime startOfDay,
+            @Param("endOfDay") LocalDateTime endOfDay,
+            @Param("cancelledStatus") AppointmentStatus cancelledStatus
+    );
 }
