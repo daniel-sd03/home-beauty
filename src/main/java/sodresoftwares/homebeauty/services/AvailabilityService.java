@@ -58,13 +58,13 @@ public class AvailabilityService {
         ProfessionalProfile profile = profileRepository.findById(professionalId)
                 .orElseThrow(() -> {
                     log.warn("Professional profile not found with ID: {}", professionalId);
-                    return new RuntimeException("Professional profile not found");
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Professional profile not found");
                 });
 
         ProvidedService service = serviceRepository.findById(serviceId)
                 .orElseThrow(() -> {
                     log.warn("Service not found with ID: {}", serviceId);
-                    return new RuntimeException("Service not found");
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found");
                 });
 
         WorkingHour workingHour = workingHoursRepository
