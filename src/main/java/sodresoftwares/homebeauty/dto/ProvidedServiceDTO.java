@@ -4,8 +4,10 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import sodresoftwares.homebeauty.enums.ServiceLocationType;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public record ProvidedServiceDTO(
         String
@@ -16,6 +18,9 @@ public record ProvidedServiceDTO(
 
         String description,
 
+        @NotNull
+        ServiceLocationType locationType,
+
         @NotNull(message = "Price is required")
         @PositiveOrZero(message = "Price must be zero or greater")
         BigDecimal price,
@@ -25,5 +30,7 @@ public record ProvidedServiceDTO(
         Integer durationMinutes,
 
         @NotBlank(message = "Category ID is required")
-        String categoryId
+        String categoryId,
+
+        List<String> imageUrls
 ) {}
