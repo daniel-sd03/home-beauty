@@ -68,13 +68,19 @@ public class ProfessionalCatalogService {
         ProvidedService newService = ProvidedService.builder()
                 .name(data.name())
                 .description(data.description())
+                .locationType(data.locationType())
                 .price(data.price())
                 .durationMinutes(data.durationMinutes())
                 .professional(professional)
                 .category(currentCategory)
                 .build();
 
-        // 4. Save it
+        // 4. Add images if provided Service
+        if (data.imageUrls() != null) {
+            data.imageUrls().forEach(newService::addImage);
+        }
+
+        // 5. Save it
         providedServiceRepository.save(newService);
     }
 
@@ -83,14 +89,23 @@ public class ProfessionalCatalogService {
 
         // Maps the list of Entities to a list of DTOs to return to the front-end
         return professional.getServices().stream()
-                .map(service -> new ProvidedServiceDTO(
-                        service.getId(),
-                        service.getName(),
-                        service.getDescription(),
-                        service.getPrice(),
-                        service.getDurationMinutes(),
-                        service.getCategory().getId()
-                ))
+                .map(service -> {
+                    // Extract the image URLs from the ServiceImage entities
+                    List<String> urls = service.getImages().stream()
+                            .map(ServiceImage::getImageUrl)
+                            .toList();
+
+                    return new ProvidedServiceDTO(
+                            service.getId(),
+                            service.getName(),
+                            service.getDescription(),
+                            service.getLocationType(),
+                            service.getPrice(),
+                            service.getDurationMinutes(),
+                            service.getCategory().getId(),
+                            urls
+                    );
+                })
                 .toList();
     }
 
@@ -113,9 +128,16 @@ public class ProfessionalCatalogService {
         // 4. Update the data
         existingService.setName(data.name());
         existingService.setDescription(data.description());
+        existingService.setLocationType(data.locationType());
         existingService.setPrice(data.price());
         existingService.setDurationMinutes(data.durationMinutes());
         existingService.setCategory(currentCategory);
+
+        // delete existing images and add the new ones (if provided)
+        existingService.getImages().clear();
+        if (data.imageUrls() != null) {
+            data.imageUrls().forEach(existingService::addImage);
+        }
 
         // 5. Save to the database
         providedServiceRepository.save(existingService);

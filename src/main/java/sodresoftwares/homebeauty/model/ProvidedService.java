@@ -5,6 +5,8 @@ import lombok.*;
 import sodresoftwares.homebeauty.enums.ServiceLocationType;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "provided_services")
@@ -41,4 +43,17 @@ public class ProvidedService {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
+
+    @OneToMany(mappedBy = "providedService", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ServiceImage> images = new ArrayList<>();
+
+    // Helper method to add an image to the service
+    public void addImage(String url) {
+        ServiceImage image = ServiceImage.builder()
+                .imageUrl(url)
+                .providedService(this)
+                .build();
+        this.images.add(image);
+    }
 }
