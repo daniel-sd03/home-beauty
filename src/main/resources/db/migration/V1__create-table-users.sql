@@ -20,7 +20,8 @@ CREATE TABLE states (
 
 CREATE TABLE categories (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
-    name TEXT NOT NULL
+    name TEXT NOT NULL,
+    icon_name TEXT NOT NULL
 );
 
 -- 2. First Level Dependency Tables

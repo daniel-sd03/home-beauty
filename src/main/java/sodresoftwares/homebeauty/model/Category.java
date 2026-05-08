@@ -18,4 +18,7 @@ public class Category {
 
     @Column(nullable = false)
     private String name;
+
+    @Column(name = "icon_name", nullable = false)
+    private String iconName;
 }
