@@ -8,5 +8,8 @@ public record CategoryDTO(
         id,
 
         @NotBlank(message = "Category name is required")
-        String name
+        String name,
+
+        @NotBlank(message = "Icon name is required")
+        String iconName
 ) {}

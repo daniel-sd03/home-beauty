@@ -24,6 +24,7 @@ public class CategoryController {
     public ResponseEntity<Void> create(@RequestBody @Valid CategoryDTO data) {
         Category category = Category.builder()
                 .name(data.name())
+                .iconName(data.iconName())
                 .build();
 
         repository.save(category);
@@ -38,7 +39,8 @@ public class CategoryController {
         var response = categories.stream()
                 .map(category -> new CategoryDTO(
                         category.getId(),
-                        category.getName()
+                        category.getName(),
+                        category.getIconName()
                 ))
                 .toList();
 
