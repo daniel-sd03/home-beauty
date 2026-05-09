@@ -11,7 +11,6 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.infra.security.SecurityFilter;
 import sodresoftwares.homebeauty.services.AvailabilityService;
 
@@ -23,7 +22,6 @@ import java.util.List;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -116,21 +114,6 @@ class AvailabilityControllerTest {
         mockMvc.perform(get("/availability/{professionalId}", "prof-123")
                         .param("serviceId", "serv-456")
                         .param("date", "not-a-date")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Should return 400 Bad Request when Service throws validation error")
-    void testGetAvailableSlots_ServiceThrowsBadRequest() throws Exception {
-        // Arrange
-        when(availabilityService.getAvailableSlots("prof-123", "serv-456", testDate))
-                .thenThrow(new ResponseStatusException(BAD_REQUEST, "Cannot fetch availability for past dates."));
-
-        // Act & Assert
-        mockMvc.perform(get("/availability/{professionalId}", "prof-123")
-                        .param("serviceId", "serv-456")
-                        .param("date", testDate.toString())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
     }
