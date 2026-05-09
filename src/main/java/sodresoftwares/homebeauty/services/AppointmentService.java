@@ -196,19 +196,32 @@ public class AppointmentService {
     public void updateStatus(String id, AppointmentStatusUpdateDTO dto) {
         log.info("Attempting to update status of appointment ID: {} to {}", id, dto.status());
 
-        //  Get the current User
-        User professional = getCurrentUser();
+        // Get the current User
+        User currentUser = getCurrentUser();
 
         // Fetch the appointment
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found."));
 
-        // Verify if the logged user is the owner of the professional appointment
-        if (!appointment.getProfessionalUser().getId().equals(professional.getId())) {
-            log.warn("Security breach attempt: User ID {} tried to modify appointment ID {} owned by User ID {}",
-                    professional.getId(), id, appointment.getProfessionalUser().getId());
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to modify this appointment");
+        // Identify who is trying to update
+        boolean isProfessional = appointment.getProfessionalUser().getId().equals(currentUser.getId());
+        boolean isClient = appointment.getClient().getId().equals(currentUser.getId());
+
+        // 1. SECURITY: Check if user is part of the appointment
+        if (!isProfessional && !isClient) {
+            log.warn("Security breach attempt: User ID {} tried to modify appointment ID {}", currentUser.getId(), id);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: You are not part of this appointment.");
         }
+
+        // 2. BUSINESS RULE: Clients can only cancel
+        if (isClient && !isProfessional) {
+            if (dto.status() != AppointmentStatus.CANCELLED) {
+                log.warn("Rule violation: Client ID {} attempted to set status to {} for appointment ID {}",
+                        currentUser.getId(), dto.status(), id);
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Clients can only CANCEL appointments. Only professionals can update to other statuses.");
+            }
+        }
+
         // Update the status
         appointment.setStatus(dto.status());
 
