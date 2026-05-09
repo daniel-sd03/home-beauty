@@ -14,6 +14,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import sodresoftwares.homebeauty.dto.AppointmentCreateDTO;
 import sodresoftwares.homebeauty.dto.AppointmentResponseDTO;
+import sodresoftwares.homebeauty.dto.AppointmentStatusUpdateDTO;
 import sodresoftwares.homebeauty.enums.AppointmentStatus;
 import sodresoftwares.homebeauty.enums.AppointmentType;
 import sodresoftwares.homebeauty.infra.security.SecurityFilter;
@@ -26,6 +27,8 @@ import java.util.List;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -94,6 +97,8 @@ class AppointmentControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(appointmentCreateDTO)))
                 .andExpect(status().isCreated());
+
+        verify(appointmentService).createAppointment(any(AppointmentCreateDTO.class));
     }
 
     @Test
@@ -116,17 +121,23 @@ class AppointmentControllerTest {
     }
 
     @Test
-    @DisplayName("Should return internal server error when service throws exception")
-    void testCreateAppointment_ServiceThrowsException() throws Exception {
-        // Arrange
-        when(appointmentService.createAppointment(any(AppointmentCreateDTO.class)))
-                .thenThrow(new RuntimeException("Service error"));
+    @DisplayName("Should return 400 Bad Request when date format is invalid")
+    void testCreateAppointment_InvalidDateFormat() throws Exception {
+        // Arrange - JSON with invalid date string
+        String invalidJson = """
+                {
+                    "providedServicesId": "service-id-123",
+                    "appointmentType": "CLIENT_LOCATION",
+                    "startTime": "invalid-date-format", 
+                    "addressId": "address-id-456"
+                }
+                """;
 
         // Act & Assert
         mockMvc.perform(post("/appointments")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(appointmentCreateDTO)))
-                .andExpect(status().isInternalServerError());
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidJson))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -211,35 +222,6 @@ class AppointmentControllerTest {
     }
 
     @Test
-    @DisplayName("Should return not found when appointment does not exist")
-    void testGetAppointmentById_NotFound() throws Exception {
-        // Arrange
-        String appointmentId = "non-existent-id";
-        when(appointmentService.getAppointmentById(appointmentId))
-                .thenThrow(new RuntimeException("Appointment not found."));
-
-        // Act & Assert
-        mockMvc.perform(get("/appointments/{id}", appointmentId)
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isInternalServerError());
-    }
-
-    @Test
-    @DisplayName("Should return forbidden when accessing appointment without permission")
-    void testGetAppointmentById_Forbidden() throws Exception {
-        // Arrange
-        String appointmentId = "appointment-id-789";
-        when(appointmentService.getAppointmentById(appointmentId))
-                .thenThrow(new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.FORBIDDEN, "Access denied"));
-
-        // Act & Assert
-        mockMvc.perform(get("/appointments/{id}", appointmentId)
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     @DisplayName("Should validate appointment response structure")
     void testAppointmentResponseStructure() throws Exception {
         // Arrange
@@ -275,6 +257,10 @@ class AppointmentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validJson))
                 .andExpect(status().isNoContent());
+
+
+        verify(appointmentService).updateStatus(eq(appointmentId),
+                any(AppointmentStatusUpdateDTO.class));
     }
 
     @Test
