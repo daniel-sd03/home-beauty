@@ -1,4 +1,11 @@
 package sodresoftwares.homebeauty.dto;
 
-public record AuthenticationDTO(String login, String password) {
-}
+import jakarta.validation.constraints.NotBlank;
+
+public record AuthenticationDTO(
+        @NotBlank(message = "login is required")
+        String login,
+
+        @NotBlank(message = "Password is required")
+        String password
+) {}
