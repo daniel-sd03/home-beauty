@@ -1,9 +1,10 @@
  package sodresoftwares.homebeauty.infra.security;
 
- import jakarta.servlet.http.HttpServletResponse;
  import org.springframework.context.annotation.Bean;
  import org.springframework.context.annotation.Configuration;
  import org.springframework.http.HttpMethod;
+ import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+ import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
  import org.springframework.security.authentication.AuthenticationManager;
  import org.springframework.security.config.Customizer;
  import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -18,12 +19,14 @@
  @Configuration
 @EnableWebSecurity
 public class SecurityConfigurations {
-	
-	private final SecurityFilter securityFilter;
-	
-	public SecurityConfigurations(SecurityFilter securityFilter) {
-		this.securityFilter = securityFilter;
-	}
+
+	 private final SecurityFilter securityFilter;
+	 private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+
+	 public SecurityConfigurations(SecurityFilter securityFilter, CustomAuthenticationEntryPoint authenticationEntryPoint) {
+		 this.securityFilter = securityFilter;
+		 this.authenticationEntryPoint = authenticationEntryPoint;
+	 }
 	
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
@@ -36,27 +39,27 @@ public class SecurityConfigurations {
 						.requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
 						.requestMatchers(HttpMethod.POST, "/auth/register/professional").permitAll()
 						.requestMatchers(HttpMethod.GET, "/categories").permitAll()
-						.requestMatchers("/error").permitAll()
-						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+						.requestMatchers(HttpMethod.GET, "/users/search").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PATCH, "/auth/{id}/role/admin").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PATCH, "/auth/{id}/role/demote").hasRole("ADMIN")
-						.requestMatchers(HttpMethod.GET, "/users/search").hasRole("ADMIN")
+						.requestMatchers("/error").permitAll()
+						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 						.anyRequest().authenticated()
 				)
-		        .exceptionHandling(exception -> 
-		            exception.authenticationEntryPoint((request, response, authException) -> {
-		                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-		                response.setContentType("application/json");
-		                response.getWriter().write("""
-		                {
-		                  "error": "Unauthorized"
-		                }
-		                """);
-		            })
+		        .exceptionHandling(exception ->
+		            exception.authenticationEntryPoint(authenticationEntryPoint)
 	            )
 				.addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
 				.build();
 	}
+
+	 @Bean
+	 public RoleHierarchy roleHierarchy() {
+		 return RoleHierarchyImpl.withDefaultRolePrefix()
+				 .role("ADMIN").implies("PROFESSIONAL")
+				 .role("PROFESSIONAL").implies("USER")
+				 .build();
+	 }
 	
 	@Bean
 	public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
