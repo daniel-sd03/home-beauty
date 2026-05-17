@@ -24,8 +24,8 @@ public interface ProfessionalBlockRepository  extends JpaRepository<Professional
     //get all blocks for a professional on a specific day
     @Query("SELECT b FROM ProfessionalBlock b " +
             "WHERE b.professional.id = :profileId " +
-            "AND b.startDateTime >= :startOfDay " +
-            "AND b.endDateTime <= :endOfDay")
+            "AND b.startDateTime <= :endOfDay " +
+            "AND b.endDateTime >= :startOfDay")
     List<ProfessionalBlock> findBlocksByDay(
             @Param("profileId") String profileId,
             @Param("startOfDay") LocalDateTime startOfDay,
