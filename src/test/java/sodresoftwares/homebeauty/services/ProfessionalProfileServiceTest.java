@@ -12,9 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
-import sodresoftwares.homebeauty.dto.ProfessionalRegisterDTO;
 import sodresoftwares.homebeauty.dto.ProfessionalUpgradeDTO;
 import sodresoftwares.homebeauty.model.ProfessionalProfile;
 import sodresoftwares.homebeauty.model.user.User;
@@ -37,8 +35,7 @@ class ProfessionalProfileServiceTest {
     private UserRepository userRepository;
     @Mock
     private ProfessionalProfileRepository profileRepository;
-    @Mock
-    private PasswordEncoder passwordEncoder;
+
     @Mock
     private SecurityContext securityContext;
     @Mock
@@ -48,7 +45,6 @@ class ProfessionalProfileServiceTest {
     private ProfessionalProfileService professionalProfileService;
 
     private User testUser;
-    private ProfessionalRegisterDTO registerDTO;
     private ProfessionalUpgradeDTO upgradeDTO;
 
     @BeforeEach
@@ -62,53 +58,10 @@ class ProfessionalProfileServiceTest {
                 .role(UserRole.USER)
                 .build();
 
-        registerDTO = new ProfessionalRegisterDTO(
-                "prof@test.com", "password123", "Jane", "119...", "Expert Hair"
-        );
         upgradeDTO = new ProfessionalUpgradeDTO("Expert Consultant");
 
         lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
-    }
-
-    // ==================== REGISTER NEW PROFESSIONAL ====================
-
-    @Test
-    @DisplayName("Should register new professional and create profile successfully")
-    void shouldRegisterNewProfessionalSuccessfully() {
-        // Arrange
-        when(userRepository.findByLogin(registerDTO.login())).thenReturn(null);
-        when(passwordEncoder.encode(anyString())).thenReturn("hashed-pass");
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-
-        // Act
-        professionalProfileService.registerNewProfessional(registerDTO);
-
-        // Assert
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-        User savedUser = userCaptor.getValue();
-        assertThat(savedUser.getRole()).isEqualTo(UserRole.PROFESSIONAL);
-        assertThat(savedUser.getPassword()).isEqualTo("hashed-pass");
-        assertThat(savedUser.getPassword()).isNotEqualTo("password123");
-
-        // Assert
-        ArgumentCaptor<ProfessionalProfile> profileCaptor = ArgumentCaptor.forClass(ProfessionalProfile.class);
-        verify(profileRepository).save(profileCaptor.capture());
-        assertThat(profileCaptor.getValue().getDescription()).isEqualTo("Expert Hair");
-        assertThat(profileCaptor.getValue().getUser()).isEqualTo(testUser);
-    }
-
-    @Test
-    @DisplayName("Should throw CONFLICT when registering professional with existing login")
-    void shouldThrowConflictWhenUserExists() {
-        when(userRepository.findByLogin(anyString())).thenReturn(testUser);
-
-        assertThatThrownBy(() -> professionalProfileService.registerNewProfessional(registerDTO))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
-
-        verify(profileRepository, never()).save(any());
     }
 
     // ==================== UPGRADE TO PROFESSIONAL ====================

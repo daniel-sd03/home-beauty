@@ -2,11 +2,9 @@ package sodresoftwares.homebeauty.services;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import sodresoftwares.homebeauty.dto.ProfessionalRegisterDTO;
 import sodresoftwares.homebeauty.dto.ProfessionalUpgradeDTO;
 import sodresoftwares.homebeauty.model.ProfessionalProfile;
 import sodresoftwares.homebeauty.model.user.User;
@@ -19,47 +17,22 @@ public class ProfessionalProfileService {
 
     private final UserRepository userRepository;
     private final ProfessionalProfileRepository profileRepository;
-    private final PasswordEncoder passwordEncoder;
 
-    public ProfessionalProfileService(UserRepository userRepository, ProfessionalProfileRepository profileRepository
-            ,PasswordEncoder passwordEncoder) {
+    public ProfessionalProfileService(UserRepository userRepository, ProfessionalProfileRepository profileRepository) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
-
-    @Transactional
-    public void registerNewProfessional(ProfessionalRegisterDTO data) {
-        // Check if user already exists
-        if (userRepository.findByLogin(data.login()) != null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "User already exists with this login");
-        }
-
-        // Create user
-        String encryptedPassword = passwordEncoder.encode(data.password());
-        User newUser = User.builder()
-                .login(data.login())
-                .password(encryptedPassword)
-                .role(UserRole.PROFESSIONAL)
-                .name(data.name())
-                .phone(data.phone())
-                .build();
-        newUser = userRepository.save(newUser);
-
-        // Create profile
-        ProfessionalProfile profile = ProfessionalProfile.builder()
-                .description(data.description())
-                .user(newUser)
-                .build();
-        profileRepository.save(profile);
     }
 
     @Transactional
     public void upgradeToProfessional(ProfessionalUpgradeDTO data) {
         // Get current user from token JWT
-        User currentUser = (User) SecurityContextHolder.getContext()
+        User authenticatedUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
+
+        // get current user from database to ensure we have the latest data
+        User currentUser = userRepository.findById(authenticatedUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         // Check if professional profile already exists
         if (profileRepository.findByUserId(currentUser.getId()).isPresent()) {

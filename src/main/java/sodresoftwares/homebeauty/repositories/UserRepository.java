@@ -8,5 +8,6 @@ import java.util.List;
 
 public interface UserRepository extends JpaRepository<User, String> {
     UserDetails findByLogin(String login);
+    boolean existsByLogin(String login);
     List<User> findByNameContainingIgnoreCaseOrLoginContainingIgnoreCase(String name, String login);
 }

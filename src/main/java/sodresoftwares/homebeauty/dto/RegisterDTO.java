@@ -1,6 +1,8 @@
 package sodresoftwares.homebeauty.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import sodresoftwares.homebeauty.model.user.UserRole;
 
 public record RegisterDTO(
         @NotBlank(message = "Login is required")
@@ -12,7 +14,6 @@ public record RegisterDTO(
         @NotBlank(message = "Name is required")
         String name,
 
-        @NotBlank(message = "Phone is required")
-        String phone
-
+        @NotNull(message = "Role is required")
+        UserRole role
 ) {}

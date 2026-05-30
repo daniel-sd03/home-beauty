@@ -12,13 +12,10 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import sodresoftwares.homebeauty.dto.AuthenticationDTO;
-import sodresoftwares.homebeauty.dto.LoginResponseDTO;
-import sodresoftwares.homebeauty.dto.ProfessionalRegisterDTO;
-import sodresoftwares.homebeauty.dto.RegisterDTO;
+import sodresoftwares.homebeauty.dto.*;
 import sodresoftwares.homebeauty.infra.security.SecurityFilter;
+import sodresoftwares.homebeauty.model.user.UserRole;
 import sodresoftwares.homebeauty.services.AuthService;
-import sodresoftwares.homebeauty.services.ProfessionalProfileService;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
@@ -47,22 +44,19 @@ class AuthenticationControllerTest {
     @MockitoBean
     private AuthService authService;
 
-    @MockitoBean
-    private ProfessionalProfileService professionalProfileService;
-
     private AuthenticationDTO authenticationDTO;
     private LoginResponseDTO loginResponseDTO;
     private RegisterDTO registerDTO;
-    private ProfessionalRegisterDTO professionalRegisterDTO;
+    private VerifyCodeDTO verifyCodeDTO;
+    private ResendCodeDTO resendCodeDTO;
 
     @BeforeEach
     void setUp() {
         authenticationDTO = new AuthenticationDTO("user@test.com", "password123");
-        loginResponseDTO = new LoginResponseDTO("jwt-token-example");
-        registerDTO = new RegisterDTO("user@test.com", "password123", "John Doe", "11999999999");
-        professionalRegisterDTO = new ProfessionalRegisterDTO(
-                "professional@test.com", "password123", "Jane Prof", "11988888888", "Expert"
-        );
+        loginResponseDTO = new LoginResponseDTO("jwt-token-example", UserRole.USER, true);
+        registerDTO = new RegisterDTO("user@test.com", "password123", "John Doe", UserRole.USER);
+        verifyCodeDTO = new VerifyCodeDTO("user@test.com", "123456");
+        resendCodeDTO = new ResendCodeDTO("user@test.com");
     }
 
     // ==================== LOGIN TESTS ====================
@@ -97,14 +91,14 @@ class AuthenticationControllerTest {
     // ==================== REGISTER TESTS ====================
 
     @Test
-    @DisplayName("Should register new user successfully (HTTP 200)")
+    @DisplayName("Should register new user successfully (HTTP 201)")
     void testRegister_Success() throws Exception {
         doNothing().when(authService).register(any(RegisterDTO.class));
 
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerDTO)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         verify(authService).register(any(RegisterDTO.class));
     }
@@ -112,7 +106,7 @@ class AuthenticationControllerTest {
     @Test
     @DisplayName("Should return 400 when register fields are blank")
     void testRegister_ValidationErrors() throws Exception {
-        RegisterDTO invalidDTO = new RegisterDTO("", "", "", "");
+        RegisterDTO invalidDTO = new RegisterDTO("", "", "", null);
 
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -122,32 +116,60 @@ class AuthenticationControllerTest {
         verifyNoInteractions(authService);
     }
 
-    // ==================== REGISTER PROFESSIONAL TESTS ====================
+    // ==================== VERIFY ACCOUNT TESTS ====================
 
     @Test
-    @DisplayName("Should register new professional successfully (HTTP 201)")
-    void testRegisterProfessional_Success() throws Exception {
-        doNothing().when(professionalProfileService).registerNewProfessional(any(ProfessionalRegisterDTO.class));
+    @DisplayName("Should verify account successfully (HTTP 200)")
+    void testVerifyAccount_Success() throws Exception {
+        doNothing().when(authService).verifyAccount(any(VerifyCodeDTO.class));
 
-        mockMvc.perform(post("/auth/register/professional")
+        mockMvc.perform(post("/auth/verify")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(professionalRegisterDTO)))
-                .andExpect(status().isCreated());
+                        .content(objectMapper.writeValueAsString(verifyCodeDTO)))
+                .andExpect(status().isOk());
 
-        verify(professionalProfileService).registerNewProfessional(any(ProfessionalRegisterDTO.class));
+        verify(authService).verifyAccount(any(VerifyCodeDTO.class));
     }
 
     @Test
-    @DisplayName("Should return 400 when professional register fields are blank")
-    void testRegisterProfessional_ValidationErrors() throws Exception {
-        ProfessionalRegisterDTO invalidDTO = new ProfessionalRegisterDTO("", "", "", "", "");
+    @DisplayName("Should return 400 when verify fields are invalid")
+    void testVerifyAccount_ValidationErrors() throws Exception {
+        VerifyCodeDTO invalidDTO = new VerifyCodeDTO("", "");
 
-        mockMvc.perform(post("/auth/register/professional")
+        mockMvc.perform(post("/auth/verify")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidDTO)))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(professionalProfileService);
+        verifyNoInteractions(authService);
+    }
+
+    // ==================== RESEND CODE TESTS ====================
+
+    @Test
+    @DisplayName("Should resend verification code successfully (HTTP 200)")
+    void testResendCode_Success() throws Exception {
+        doNothing().when(authService).resendVerificationCode(anyString());
+
+        mockMvc.perform(post("/auth/resend-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(resendCodeDTO)))
+                .andExpect(status().isOk());
+
+        verify(authService).resendVerificationCode(resendCodeDTO.login());
+    }
+
+    @Test
+    @DisplayName("Should return 400 when resend code email is invalid")
+    void testResendCode_ValidationErrors() throws Exception {
+        ResendCodeDTO invalidDTO = new ResendCodeDTO("email-invalido");
+
+        mockMvc.perform(post("/auth/resend-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidDTO)))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(authService);
     }
 
     // ==================== ROLE MANAGEMENT TESTS ====================

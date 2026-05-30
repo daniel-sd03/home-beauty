@@ -14,6 +14,7 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -74,6 +75,11 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/type-mismatch/{id}")
         public void throwTypeMismatch(@PathVariable Long id) {
             // This will trigger MethodArgumentTypeMismatchException if id is not a number
+        }
+
+        @PostMapping("/disabled-account")
+        public void throwDisabledException() {
+            throw new DisabledException("User account is disabled");
         }
 
         @PostMapping("/generic-exception")
@@ -159,6 +165,18 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("Invalid format for parameter: id"))
                 .andExpect(jsonPath("$.path").value("/test/type-mismatch/not-a-number"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    @DisplayName("Should handle DisabledException with 403 Forbidden")
+    void shouldHandleDisabledException() throws Exception {
+        mockMvc.perform(post("/test/disabled-account"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.message").value("Your account is not activated yet. Please check your email for the verification code."))
+                .andExpect(jsonPath("$.path").value("/test/disabled-account"))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
 

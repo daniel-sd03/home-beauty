@@ -37,6 +37,8 @@ public class SecurityConfigurations {
 				.authorizeHttpRequests(authrize -> authrize
 						.requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
 						.requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
+						.requestMatchers(HttpMethod.POST, "/auth/verify").permitAll()
+						.requestMatchers(HttpMethod.POST, "/auth/resend-code").permitAll()
 						.requestMatchers(HttpMethod.POST, "/auth/register/professional").permitAll()
 						.requestMatchers(HttpMethod.GET, "/categories").permitAll()
 						.requestMatchers(HttpMethod.GET, "/users/search").hasRole("ADMIN")

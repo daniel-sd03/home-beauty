@@ -1,15 +1,21 @@
 -- 1. Base Tables (Do not depend on any other table)
 CREATE TABLE users (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
-    name TEXT,
+    name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    phone TEXT,
     role TEXT NOT NULL,
     profile_picture_url TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
+    phone TEXT,
+    cpf TEXT UNIQUE,
+    birth_date DATE,
+    gender TEXT,
+    is_active BOOLEAN DEFAULT FALSE,
+    verification_code TEXT,
+    verification_code_expiry TIMESTAMP,
     deletion_requested_at TIMESTAMP DEFAULT NULL,
-    dt_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE states (
@@ -24,6 +30,11 @@ CREATE TABLE categories (
     icon_name TEXT NOT NULL
 );
 
+CREATE TABLE specialties (
+    id TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL UNIQUE
+);
+
 -- 2. First Level Dependency Tables
 CREATE TABLE cities (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,    
@@ -34,9 +45,14 @@ CREATE TABLE cities (
 
 CREATE TABLE professional_profiles (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
-    user_id TEXT NOT NULL,
+    user_id TEXT NOT NULL UNIQUE ,
     description TEXT,
+    whatsapp TEXT,
+    instagram_handle TEXT,
     average_rating DECIMAL(3, 2) DEFAULT 0.00,
+    service_radius_km INT DEFAULT 10,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_profile_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
@@ -52,6 +68,8 @@ CREATE TABLE addresses (
     zip_code TEXT NOT NULL,
     latitude DECIMAL(10, 8),
     longitude DECIMAL(11, 8),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_address_user FOREIGN KEY (user_id) REFERENCES users(id),
     CONSTRAINT fk_address_city FOREIGN KEY (city_id) REFERENCES cities(id)
 );
@@ -62,6 +80,8 @@ CREATE TABLE working_hours (
     day_of_week TEXT NOT NULL,
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_working_hours_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id) ON DELETE CASCADE
 );
 
@@ -71,6 +91,8 @@ CREATE TABLE professional_blocks (
     title TEXT,
     start_date_time TIMESTAMP NOT NULL,
     end_date_time TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_blocks_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id) ON DELETE CASCADE
 );
 
@@ -83,6 +105,8 @@ CREATE TABLE provided_services (
     description TEXT,
     price DECIMAL(10, 2) NOT NULL,
     duration_minutes INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_service_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id) ON DELETE CASCADE,
     CONSTRAINT fk_service_category FOREIGN KEY (category_id) REFERENCES categories(id)
 );
@@ -92,6 +116,14 @@ CREATE TABLE service_images (
     provided_services_id TEXT NOT NULL,
     image_url TEXT NOT NULL,
     CONSTRAINT fk_image_service FOREIGN KEY (provided_services_id) REFERENCES provided_services(id) ON DELETE CASCADE
+);
+
+CREATE TABLE professional_specialties (
+    professional_profile_id TEXT NOT NULL,
+    specialty_id TEXT NOT NULL,
+    PRIMARY KEY (professional_profile_id, specialty_id),
+    CONSTRAINT fk_joint_profile FOREIGN KEY (professional_profile_id) REFERENCES professional_profiles(id) ON DELETE CASCADE,
+    CONSTRAINT fk_joint_specialty FOREIGN KEY (specialty_id) REFERENCES specialties(id) ON DELETE CASCADE
 );
 
 -- 4. Schedule Table (Depends on almost everything)
@@ -114,6 +146,8 @@ CREATE TABLE appointments (
     end_time TIMESTAMP NOT NULL,
     status TEXT NOT NULL,
     notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     -- Constraints
     CONSTRAINT fk_appointment_client FOREIGN KEY (client_id) REFERENCES users(id),
@@ -126,11 +160,13 @@ CREATE TABLE appointments (
 -- 5.Rating Table (Depends on Appointments)
 CREATE TABLE reviews (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
-    appointment_id TEXT NOT NULL,
+    appointment_id TEXT NOT NULL UNIQUE,
     client_id TEXT NOT NULL,
     professional_user_id TEXT NOT NULL,
     rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
     comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_review_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id),
     CONSTRAINT fk_review_client FOREIGN KEY (client_id) REFERENCES users(id),
     CONSTRAINT fk_review_professional FOREIGN KEY (professional_user_id) REFERENCES users(id)
