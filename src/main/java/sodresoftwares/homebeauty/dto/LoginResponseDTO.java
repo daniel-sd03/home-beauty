@@ -1,5 +1,9 @@
 package sodresoftwares.homebeauty.dto;
 
-public record LoginResponseDTO (String token){
+import sodresoftwares.homebeauty.model.user.UserRole;
 
-}
+public record LoginResponseDTO(
+        String token,
+        UserRole role,
+        boolean isProfileComplete
+) {}

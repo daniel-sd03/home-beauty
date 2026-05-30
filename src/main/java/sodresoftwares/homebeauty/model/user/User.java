@@ -6,7 +6,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.List;
 
@@ -24,26 +26,62 @@ public class User implements UserDetails {
 	@GeneratedValue(strategy = GenerationType.UUID)
 	private String id;
 
-	private String name;
-
 	@Column(name = "email", unique = true, nullable = false)
 	private String login;
 
 	@Column(nullable = false)
 	private String password;
 
-	private String phone;
-
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
 	private UserRole role;
+
+	@Column(nullable = false)
+	private String name;
+
+	private String phone;
+
+	@Column(unique = true)
+	private String cpf;
+
+	@Column(name = "birth_date")
+	private LocalDate birthDate;
+
+	private String gender;
+
+	@Column(name = "profile_picture_url")
+	private String profilePictureUrl;
+
+	@Column(name = "is_active")
+	private boolean isActive = false;
+
+	@Column(name = "verification_code")
+	private String verificationCode;
+
+	@Column(name = "verification_code_expiry")
+	private LocalDateTime verificationCodeExpiry;
+
+	@Column(name = "deletion_requested_at")
+	private LocalDateTime deletionRequestedAt;
 
 	@Column(name = "dt_created", updatable = false)
 	private LocalDateTime dtCreated;
 
 	@PrePersist
 	protected void onCreate() {
-		this.dtCreated = LocalDateTime.now();
+		this.dtCreated = LocalDateTime.now(ZoneOffset.UTC);
+	}
+
+	@Override
+	public boolean isEnabled() {
+		return this.isActive;
+	}
+
+	public boolean hasCompleteUserProfile() {
+		return phone != null && !phone.isBlank()
+				&& cpf != null && !cpf.isBlank()
+				&& birthDate != null
+				&& gender != null && !gender.isBlank();
 	}
 
 	@Override
@@ -61,4 +99,3 @@ public class User implements UserDetails {
 		return login;
 	}
 }
- 

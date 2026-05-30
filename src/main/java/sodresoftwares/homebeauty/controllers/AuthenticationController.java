@@ -1,56 +1,56 @@
-package sodresoftwares.homebeauty.controllers;
+	package sodresoftwares.homebeauty.controllers;
 
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import sodresoftwares.homebeauty.dto.AuthenticationDTO;
-import sodresoftwares.homebeauty.dto.LoginResponseDTO;
-import sodresoftwares.homebeauty.dto.ProfessionalRegisterDTO;
-import sodresoftwares.homebeauty.dto.RegisterDTO;
-import sodresoftwares.homebeauty.services.AuthService;
-import sodresoftwares.homebeauty.services.ProfessionalProfileService;
+	import jakarta.validation.Valid;
+	import org.springframework.http.HttpStatus;
+	import org.springframework.http.ResponseEntity;
+	import org.springframework.web.bind.annotation.*;
+	import sodresoftwares.homebeauty.dto.*;
+	import sodresoftwares.homebeauty.services.AuthService;
 
 
-@RestController
-@RequestMapping("auth")
-public class AuthenticationController {
+	@RestController
+	@RequestMapping("/auth")
+	public class AuthenticationController {
 
-	private final AuthService authService;
-	private final ProfessionalProfileService professionalProfileService;
+		private final AuthService authService;
 
-	public AuthenticationController(AuthService authService, ProfessionalProfileService professionalProfileService) {
-		this.authService = authService;
-		this.professionalProfileService = professionalProfileService;
+		public AuthenticationController(AuthService authService) {
+			this.authService = authService;
+		}
+
+		@PostMapping("/login")
+		public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid AuthenticationDTO data) {
+			LoginResponseDTO response = authService.login(data);
+			return ResponseEntity.ok(response);
+		}
+
+		@PostMapping("/register")
+		public ResponseEntity<Void> register(@RequestBody @Valid RegisterDTO data ) {
+			 authService.register(data);
+			 return ResponseEntity.status(HttpStatus.CREATED).build();
+		}
+
+		@PostMapping("/verify")
+		public ResponseEntity<Void> verifyAccount(@RequestBody @Valid VerifyCodeDTO data) {
+			authService.verifyAccount(data);
+			return ResponseEntity.ok().build();
+		}
+
+		@PostMapping("/resend-code")
+		public ResponseEntity<Void> resendCode(@RequestBody @Valid ResendCodeDTO data) {
+			authService.resendVerificationCode(data.login());
+			return ResponseEntity.ok().build();
+		}
+
+		@PatchMapping("/{id}/role/admin")
+		public ResponseEntity<Void> promoteToAdmin(@PathVariable String id) {
+			authService.promoteToAdmin(id);
+			return ResponseEntity.noContent().build();
+		}
+
+		@PatchMapping("/{id}/role/demote")
+		public ResponseEntity<Void> demoteFromAdmin(@PathVariable String id) {
+			authService.demoteFromAdmin(id);
+			return ResponseEntity.noContent().build();
+		}
 	}
-	
-	@PostMapping("/login")
-	public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid AuthenticationDTO data) {
-		LoginResponseDTO response = authService.login(data);
-		return ResponseEntity.ok(response);
-	}
-	
-	@PostMapping("/register")
-	public ResponseEntity<Void> register(@RequestBody @Valid RegisterDTO data ) {
-		 authService.register(data);
-		 return ResponseEntity.ok().build();
-	}
-
-	@PostMapping("/register/professional")
-	public ResponseEntity<Void> registerNewProfessional(@RequestBody @Valid ProfessionalRegisterDTO data) {
-		professionalProfileService.registerNewProfessional(data);
-		return ResponseEntity.status(HttpStatus.CREATED).build();
-	}
-
-	@PatchMapping("/{id}/role/admin")
-	public ResponseEntity<Void> promoteToAdmin(@PathVariable String id) {
-		authService.promoteToAdmin(id);
-		return ResponseEntity.noContent().build();
-	}
-
-	@PatchMapping("/{id}/role/demote")
-	public ResponseEntity<Void> demoteFromAdmin(@PathVariable String id) {
-		authService.demoteFromAdmin(id);
-		return ResponseEntity.noContent().build();
-	}
-}
