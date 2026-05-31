@@ -2,6 +2,8 @@ package sodresoftwares.homebeauty.model.user;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -67,12 +69,22 @@ public class User implements UserDetails {
 	@Column(name = "deletion_requested_at")
 	private LocalDateTime deletionRequestedAt;
 
-	@Column(name = "dt_created", updatable = false)
-	private LocalDateTime dtCreated;
+	@CreationTimestamp
+	@Column(name = "created_at", updatable = false)
+	private LocalDateTime createdAt;
+
+	@UpdateTimestamp
+	@Column(name = "updated_at")
+	private LocalDateTime updatedAt;
 
 	@PrePersist
 	protected void onCreate() {
-		this.dtCreated = LocalDateTime.now(ZoneOffset.UTC);
+		this.createdAt = LocalDateTime.now(ZoneOffset.UTC);
+	}
+
+	@PreUpdate
+	protected void onUpdate() {
+		this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
 	}
 
 	@Override
