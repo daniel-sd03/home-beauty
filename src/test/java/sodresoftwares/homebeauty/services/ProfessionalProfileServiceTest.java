@@ -52,7 +52,8 @@ class ProfessionalProfileServiceTest {
         testUser = User.builder()
                 .id("user-123")
                 .login("original@test.com")
-                .name("João Silva")
+                .firstName("João")
+                .lastName("Silva")
                 .phone("11999998888")
                 .password("hash-seguro")
                 .role(UserRole.USER)
@@ -71,6 +72,7 @@ class ProfessionalProfileServiceTest {
     void shouldUpgradeToProfessionalSuccessfully() {
         // Arrange
         when(authentication.getPrincipal()).thenReturn(testUser);
+        when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser)); // Adicionado
         when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.empty());
 
         // Act
@@ -83,7 +85,8 @@ class ProfessionalProfileServiceTest {
 
         assertThat(savedUser.getId()).isEqualTo("user-123");
         assertThat(savedUser.getLogin()).isEqualTo("original@test.com");
-        assertThat(savedUser.getName()).isEqualTo("João Silva");
+        assertThat(savedUser.getFirstName()).isEqualTo("João");
+        assertThat(savedUser.getLastName()).isEqualTo("Silva");
         assertThat(savedUser.getPhone()).isEqualTo("11999998888");
         assertThat(savedUser.getPassword()).isEqualTo("hash-seguro");
         assertThat(savedUser.getRole()).isEqualTo(UserRole.PROFESSIONAL);
@@ -98,9 +101,12 @@ class ProfessionalProfileServiceTest {
     @Test
     @DisplayName("Should throw CONFLICT when user already has a professional profile")
     void shouldThrowConflictWhenProfileAlreadyExists() {
+        // Arrange
         when(authentication.getPrincipal()).thenReturn(testUser);
+        when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser)); // Adicionado
         when(profileRepository.findByUserId(anyString())).thenReturn(Optional.of(new ProfessionalProfile()));
 
+        // Act & Assert
         assertThatThrownBy(() -> professionalProfileService.upgradeToProfessional(upgradeDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);

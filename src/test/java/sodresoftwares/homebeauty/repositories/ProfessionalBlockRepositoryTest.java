@@ -39,7 +39,8 @@ class ProfessionalBlockRepositoryTest {
     @BeforeEach
     void setUp() {
         User user = User.builder()
-                .name("Prof User")
+                .firstName("Prof")
+                .lastName("User")
                 .login("prof@test.com")
                 .password("pass")
                 .role(UserRole.PROFESSIONAL)
@@ -111,7 +112,8 @@ class ProfessionalBlockRepositoryTest {
 
         // different professional
         User otherUser = User.builder()
-                .name("Other Prof")
+                .firstName("Other")
+                .lastName("Prof")
                 .login("otherprof@test.com")
                 .password("pass")
                 .role(UserRole.PROFESSIONAL)
@@ -171,4 +173,3 @@ class ProfessionalBlockRepositoryTest {
         return blockRepository.save(block);
     }
 }
-

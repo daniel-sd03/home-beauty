@@ -16,9 +16,9 @@ public class UserService {
     }
 
     public List<UserResponseDTO> searchUsers(String query) {
-        return userRepository.findByNameContainingIgnoreCaseOrLoginContainingIgnoreCase(query, query)
+        return userRepository.searchUsers(query)
                 .stream()
-                .map(user -> new UserResponseDTO(user.getId(), user.getName(), user.getLogin(), user.getRole()))
+                .map(user -> new UserResponseDTO(user.getId(), user.getFullName(), user.getLogin(), user.getRole()))
                 .toList();
     }
 }

@@ -68,7 +68,8 @@ class AvailabilityServiceTest {
 
         professionalUser = User.builder()
                 .id("professional-id")
-                .name("John Doe")
+                .firstName("John")
+                .lastName("Doe")
                 .build();
 
         professionalProfile = ProfessionalProfile.builder()
