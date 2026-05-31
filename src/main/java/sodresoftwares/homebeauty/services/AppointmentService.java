@@ -78,7 +78,7 @@ public class AppointmentService {
                 .notes(dto.notes())
                 .serviceName(providedService.getName())
                 .categoryName(providedService.getCategory().getName())
-                .professionalName(professionalUser.getName())
+                .professionalName(professionalUser.getFullName())
                 .price(providedService.getPrice())
                 .build();
 

@@ -54,7 +54,7 @@ class AuthenticationControllerTest {
     void setUp() {
         authenticationDTO = new AuthenticationDTO("user@test.com", "password123");
         loginResponseDTO = new LoginResponseDTO("jwt-token-example", UserRole.USER, true);
-        registerDTO = new RegisterDTO("user@test.com", "password123", "John Doe", UserRole.USER);
+        registerDTO = new RegisterDTO("user@test.com", "password123", "John", "Doe", UserRole.USER);
         verifyCodeDTO = new VerifyCodeDTO("user@test.com", "123456");
         resendCodeDTO = new ResendCodeDTO("user@test.com");
     }
@@ -106,7 +106,7 @@ class AuthenticationControllerTest {
     @Test
     @DisplayName("Should return 400 when register fields are blank")
     void testRegister_ValidationErrors() throws Exception {
-        RegisterDTO invalidDTO = new RegisterDTO("", "", "", null);
+        RegisterDTO invalidDTO = new RegisterDTO("", "", "", "", null);
 
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)

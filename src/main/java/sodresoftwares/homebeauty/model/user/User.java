@@ -37,7 +37,10 @@ public class User implements UserDetails {
 	private UserRole role;
 
 	@Column(nullable = false)
-	private String name;
+	private String firstName;
+
+	@Column(nullable = false)
+	private String lastName;
 
 	private String phone;
 
@@ -82,6 +85,13 @@ public class User implements UserDetails {
 				&& cpf != null && !cpf.isBlank()
 				&& birthDate != null
 				&& gender != null && !gender.isBlank();
+	}
+
+	public String getFullName() {
+		if (this.lastName == null || this.lastName.isBlank()) {
+			return this.firstName;
+		}
+		return this.firstName + " " + this.lastName;
 	}
 
 	@Override

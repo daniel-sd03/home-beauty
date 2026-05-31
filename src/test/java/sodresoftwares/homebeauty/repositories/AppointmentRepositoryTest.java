@@ -40,7 +40,8 @@ class AppointmentRepositoryTest {
     void setUp() {
         // Create test users
         clientUser = User.builder()
-                .name("Client User")
+                .firstName("Client")
+                .lastName("User")
                 .login("client@test.com")
                 .password("password123")
                 .phone("11999999999")
@@ -48,7 +49,8 @@ class AppointmentRepositoryTest {
                 .build();
 
         professionalUser = User.builder()
-                .name("Professional User")
+                .firstName("Professional")
+                .lastName("User")
                 .login("professional@test.com")
                 .password("password123")
                 .phone("11988888888")
@@ -173,7 +175,8 @@ class AppointmentRepositoryTest {
         createAndSaveAppointment(clientUser, professionalUser, existingStart, existingEnd);
 
         User anotherProfessional = User.builder()
-                .name("Another Professional")
+                .firstName("Another")
+                .lastName("Professional")
                 .login("another@test.com")
                 .password("password123")
                 .role(UserRole.PROFESSIONAL)
@@ -222,9 +225,9 @@ class AppointmentRepositoryTest {
 
         // Assert
         assertThat(result).hasSize(3);
-        assertThat(result).extracting(Appointment::getStartTime)
-                .containsExactlyInAnyOrder(appointmentTime1, appointmentTime2, appointmentTime3);
-    }
+            assertThat(result).extracting(Appointment::getStartTime)
+                    .containsExactlyInAnyOrder(appointmentTime1, appointmentTime2, appointmentTime3);
+        }
 
     @Test
     @DisplayName("Should return empty list when no active appointments on specific day")
@@ -291,7 +294,8 @@ class AppointmentRepositoryTest {
         createAndSaveAppointment(clientUser, professionalUser, appointmentTime, appointmentTime.plusHours(1));
 
         User anotherProfessional = User.builder()
-                .name("Another Professional")
+                .firstName("Another")
+                .lastName("Professional")
                 .login("anotherpro@test.com")
                 .password("password123")
                 .role(UserRole.PROFESSIONAL)
@@ -350,7 +354,7 @@ class AppointmentRepositoryTest {
                 .notes("Test appointment")
                 .serviceName("Test Service")
                 .categoryName("Test Category")
-                .professionalName(professional.getName())
+                .professionalName(professional.getFirstName() + " " + professional.getLastName())
                 .price(BigDecimal.valueOf(100.00))
                 .client(client)
                 .professionalUser(professional)

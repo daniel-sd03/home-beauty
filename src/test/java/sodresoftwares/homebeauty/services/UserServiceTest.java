@@ -34,12 +34,13 @@ class UserServiceTest {
         String query = "test";
         User user = User.builder()
                 .id("123")
-                .name("Test User")
+                .firstName("Test")
+                .lastName("User")
                 .login("test@test.com")
                 .role(UserRole.USER)
                 .build();
 
-        when(userRepository.findByNameContainingIgnoreCaseOrLoginContainingIgnoreCase(query, query))
+        when(userRepository.searchUsers(query))
                 .thenReturn(List.of(user));
 
         // Act
@@ -53,6 +54,6 @@ class UserServiceTest {
         assertThat(dto.login()).isEqualTo("test@test.com");
         assertThat(dto.role()).isEqualTo(UserRole.USER);
 
-        verify(userRepository).findByNameContainingIgnoreCaseOrLoginContainingIgnoreCase(query, query);
+        verify(userRepository).searchUsers(query);
     }
 }

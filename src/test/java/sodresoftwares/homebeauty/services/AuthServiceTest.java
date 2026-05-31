@@ -75,7 +75,8 @@ class AuthServiceTest {
                 .id("user-123")
                 .login("user@test.com")
                 .password("encrypted-password")
-                .name("John")
+                .firstName("John")
+                .lastName("")
                 .phone("11999999999")
                 .cpf("12345678900")
                 .birthDate(java.time.LocalDate.of(1990, 1, 1))
@@ -84,7 +85,7 @@ class AuthServiceTest {
                 .build();
 
         authenticationDTO = new AuthenticationDTO("user@test.com", "password123");
-        registerDTO = new RegisterDTO("newuser@test.com", "password123", "New User", UserRole.USER);
+        registerDTO = new RegisterDTO("newuser@test.com", "password123", "New", "User", UserRole.USER);
     }
 
     // ==================== LOGIN TESTS ====================
@@ -276,7 +277,8 @@ class AuthServiceTest {
 
         // Assert basic fields
         assertThat(savedUser.getLogin()).isEqualTo("newuser@test.com");
-        assertThat(savedUser.getName()).isEqualTo("New User");
+        assertThat(savedUser.getFirstName()).isEqualTo("New");
+        assertThat(savedUser.getLastName()).isEqualTo("User");
         assertThat(savedUser.getPassword()).isEqualTo("encrypted-password");
         assertThat(savedUser.getRole()).isEqualTo(UserRole.USER);
 
@@ -290,7 +292,7 @@ class AuthServiceTest {
         verify(passwordEncoder).encode("password123");
 
         // Verify email was triggered with the generated code
-        verify(emailService).sendVerificationCode(eq("newuser@test.com"), eq("New User"), eq(savedUser.getVerificationCode()));
+        verify(emailService).sendVerificationCode(eq("newuser@test.com"), eq("New"), eq(savedUser.getVerificationCode()));
     }
 
     @Test
@@ -320,7 +322,8 @@ class AuthServiceTest {
         User pending = User.builder()
                 .id("pending-1")
                 .login("pending@test.com")
-                .name("first User")
+                .firstName("first")
+                .lastName("User")
                 .isActive(false)
                 .verificationCode("654321")
                 .verificationCodeExpiry(LocalDateTime.now(ZoneOffset.UTC).plusMinutes(5))
@@ -405,7 +408,8 @@ class AuthServiceTest {
         User pending = User.builder()
                 .id("r1")
                 .login("resend@test.com")
-                .name("Resend User")
+                .firstName("Resend")
+                .lastName("User")
                 .isActive(false)
                 .build();
 
@@ -423,7 +427,7 @@ class AuthServiceTest {
 
         verify(emailService).sendVerificationCode(
                 eq("resend@test.com"),
-                eq("Resend User"),
+                eq("Resend"),
                 eq(saved.getVerificationCode())
         );
     }

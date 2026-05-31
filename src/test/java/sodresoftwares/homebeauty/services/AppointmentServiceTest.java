@@ -78,14 +78,16 @@ class AppointmentServiceTest {
         client = User.builder()
                 .id("client-123")
                 .login("client@example.com")
-                .name("Cliente Teste")
+                .firstName("Cliente")
+                .lastName("Teste")
                 .role(UserRole.USER)
                 .build();
 
         professional = User.builder()
                 .id("prof-123")
                 .login("prof@example.com")
-                .name("Profissional Teste")
+                .firstName("Profissional")
+                .lastName("Teste")
                 .role(UserRole.PROFESSIONAL)
                 .build();
 

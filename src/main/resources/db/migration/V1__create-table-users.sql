@@ -1,7 +1,8 @@
 -- 1. Base Tables (Do not depend on any other table)
 CREATE TABLE users (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
-    name TEXT NOT NULL,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     role TEXT NOT NULL,

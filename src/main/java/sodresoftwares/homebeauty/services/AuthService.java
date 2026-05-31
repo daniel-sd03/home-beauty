@@ -90,7 +90,8 @@ public class AuthService {
         }
 
         User newUser = User.builder()
-                .name(data.name())
+                .firstName(data.firstName())
+                .lastName(data.lastName())
                 .login(data.login())
                 .password(encryptedPassword)
                 .role(assignedRole)
@@ -104,7 +105,7 @@ public class AuthService {
         log.info("New user registered and verification code generated: {}", newUser.getLogin());
 
         // Send verification email
-        emailService.sendVerificationCode(newUser.getLogin(), newUser.getName(), code);
+        emailService.sendVerificationCode(newUser.getLogin(), newUser.getFirstName(), code);
     }
 
     @Transactional
@@ -160,7 +161,7 @@ public class AuthService {
         userRepository.save(user);
 
         // Send the new verification code via email
-        emailService.sendVerificationCode(user.getLogin(), user.getName(), newCode);
+        emailService.sendVerificationCode(user.getLogin(), user.getFirstName(), newCode);
 
         log.info("A new verification code was generated and sent to: {}", login);
     }
