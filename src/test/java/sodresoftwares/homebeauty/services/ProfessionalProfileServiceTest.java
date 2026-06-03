@@ -4,113 +4,178 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
-import sodresoftwares.homebeauty.dto.ProfessionalUpgradeDTO;
+import sodresoftwares.homebeauty.dto.CompleteUserProfileDTO;
+import sodresoftwares.homebeauty.dto.ProfessionalOnboardingDTO;
+import sodresoftwares.homebeauty.dto.UpdateProfessionalProfileDTO;
 import sodresoftwares.homebeauty.model.ProfessionalProfile;
+import sodresoftwares.homebeauty.model.Specialty;
 import sodresoftwares.homebeauty.model.user.User;
-import sodresoftwares.homebeauty.model.user.UserRole;
 import sodresoftwares.homebeauty.repositories.ProfessionalProfileRepository;
-import sodresoftwares.homebeauty.repositories.UserRepository;
+import sodresoftwares.homebeauty.repositories.SpecialtyRepository;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("ProfessionalProfileService Tests")
+@DisplayName("ProfessionalProfileService - Unit Tests")
 class ProfessionalProfileServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
     @Mock
     private ProfessionalProfileRepository profileRepository;
 
     @Mock
-    private SecurityContext securityContext;
+    private SpecialtyRepository specialtyRepository;
+
     @Mock
-    private Authentication authentication;
+    private UserService userService;
 
     @InjectMocks
-    private ProfessionalProfileService professionalProfileService;
+    private ProfessionalProfileService service;
 
-    private User testUser;
-    private ProfessionalUpgradeDTO upgradeDTO;
+    private User mockUser;
+    private Specialty mockSpecialty;
+    private ProfessionalProfile existingProfile;
 
     @BeforeEach
     void setUp() {
-        testUser = User.builder()
-                .id("user-123")
-                .login("original@test.com")
-                .firstName("João")
-                .lastName("Silva")
-                .phone("11999998888")
-                .password("hash-seguro")
-                .role(UserRole.USER)
+        mockUser = User.builder()
+                .id("123")
+                .firstName("Daniel")
                 .build();
 
-        upgradeDTO = new ProfessionalUpgradeDTO("Expert Consultant");
+        mockSpecialty = Specialty.builder()
+                .id("spec-1")
+                .name("Manicure")
+                .build();
 
-        lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
-        SecurityContextHolder.setContext(securityContext);
+        existingProfile = ProfessionalProfile.builder()
+                .id("prof-999")
+                .user(mockUser)
+                .description("Old description")
+                .serviceRadiusKm(5)
+                .build();
     }
 
-    // ==================== UPGRADE TO PROFESSIONAL ====================
+    // ==================== ONBOARDING TESTS ====================
 
     @Test
-    @DisplayName("Should upgrade existing user and create professional profile")
-    void shouldUpgradeToProfessionalSuccessfully() {
+    @DisplayName("Should onboard professional successfully and save all fields")
+    void onboardProfessionalSuccess() {
         // Arrange
-        when(authentication.getPrincipal()).thenReturn(testUser);
-        when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser)); // Adicionado
-        when(profileRepository.findByUserId(testUser.getId())).thenReturn(Optional.empty());
+        ProfessionalOnboardingDTO dto = new ProfessionalOnboardingDTO(
+                "11999999999", "12345678909", LocalDate.of(1990, 1, 1), "Male",
+                "Great professional", "11888888888", "@danielsodre", 10, Set.of("spec-1")
+        );
+
+        when(profileRepository.findByUserId("123")).thenReturn(Optional.empty());
+        when(userService.completeUserProfile(eq("123"), any(CompleteUserProfileDTO.class))).thenReturn(mockUser);
+        when(specialtyRepository.findAllById(dto.specialtyIds())).thenReturn(List.of(mockSpecialty));
+        when(profileRepository.save(any(ProfessionalProfile.class))).thenAnswer(i -> i.getArgument(0));
 
         // Act
-        professionalProfileService.upgradeToProfessional(upgradeDTO);
+        ProfessionalProfile result = service.onboardProfessional("123", dto);
 
         // Assert
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-        User savedUser = userCaptor.getValue();
+        assertThat(result.getUser()).isEqualTo(mockUser);
+        assertThat(result.getDescription()).isEqualTo("Great professional");
+        assertThat(result.getWhatsapp()).isEqualTo("11888888888");
+        assertThat(result.getInstagramHandle()).isEqualTo("@danielsodre");
+        assertThat(result.getServiceRadiusKm()).isEqualTo(10);
+        assertThat(result.getSpecialties()).hasSize(1).contains(mockSpecialty);
 
-        assertThat(savedUser.getId()).isEqualTo("user-123");
-        assertThat(savedUser.getLogin()).isEqualTo("original@test.com");
-        assertThat(savedUser.getFirstName()).isEqualTo("João");
-        assertThat(savedUser.getLastName()).isEqualTo("Silva");
-        assertThat(savedUser.getPhone()).isEqualTo("11999998888");
-        assertThat(savedUser.getPassword()).isEqualTo("hash-seguro");
-        assertThat(savedUser.getRole()).isEqualTo(UserRole.PROFESSIONAL);
-
-        // Assert
-        ArgumentCaptor<ProfessionalProfile> profileCaptor = ArgumentCaptor.forClass(ProfessionalProfile.class);
-        verify(profileRepository).save(profileCaptor.capture());
-        assertThat(profileCaptor.getValue().getDescription()).isEqualTo("Expert Consultant");
-        assertThat(profileCaptor.getValue().getUser()).isEqualTo(testUser);
+        verify(profileRepository, times(1)).save(any(ProfessionalProfile.class));
     }
 
     @Test
-    @DisplayName("Should throw CONFLICT when user already has a professional profile")
-    void shouldThrowConflictWhenProfileAlreadyExists() {
-        // Arrange
-        when(authentication.getPrincipal()).thenReturn(testUser);
-        when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser)); // Adicionado
-        when(profileRepository.findByUserId(anyString())).thenReturn(Optional.of(new ProfessionalProfile()));
+    @DisplayName("Should throw 409 Conflict when onboarding an already existing profile")
+    void onboardProfessionalConflict() {
+        ProfessionalOnboardingDTO dto = new ProfessionalOnboardingDTO(
+                "11999999999", "12345678909", LocalDate.now(), "Male",
+                "Desc", "11888888888", "Insta", 10, Set.of("spec-1")
+        );
 
-        // Act & Assert
-        assertThatThrownBy(() -> professionalProfileService.upgradeToProfessional(upgradeDTO))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
+        when(profileRepository.findByUserId("123")).thenReturn(Optional.of(existingProfile));
 
-        verify(userRepository, never()).save(any());
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+                service.onboardProfessional("123", dto)
+        );
+
+        assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        verify(userService, never()).completeUserProfile(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should throw 400 Bad Request when one or more specialties are invalid")
+    void onboardProfessionalInvalidSpecialties() {
+        ProfessionalOnboardingDTO dto = new ProfessionalOnboardingDTO(
+                "11999999999", "12345678909", LocalDate.now(), "Male",
+                "Desc", "11888888888", "Insta", 10, Set.of("spec-1", "fake-spec") // 2 IDs
+        );
+
+        when(profileRepository.findByUserId("123")).thenReturn(Optional.empty());
+        when(userService.completeUserProfile(eq("123"), any())).thenReturn(mockUser);
+        when(specialtyRepository.findAllById(dto.specialtyIds())).thenReturn(List.of(mockSpecialty));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+                service.onboardProfessional("123", dto)
+        );
+
+        assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(profileRepository, never()).save(any());
+    }
+
+    // ==================== PARTIAL UPDATE TESTS ====================
+
+    @Test
+    @DisplayName("Should update professional profile partially")
+    void partialUpdateSuccess() {
+        UpdateProfessionalProfileDTO dto = new UpdateProfessionalProfileDTO(
+                "New description", null, "@new_insta", 20
+        );
+
+        when(profileRepository.findByUserId("123")).thenReturn(Optional.of(existingProfile));
+        when(profileRepository.save(any(ProfessionalProfile.class))).thenAnswer(i -> i.getArgument(0));
+
+        ProfessionalProfile result = service.partialUpdate("123", dto);
+
+        // Assert updated fields
+        assertThat(result.getId()).isEqualTo("prof-999");
+        assertThat(result.getUser()).isEqualTo(mockUser);
+        assertThat(result.getDescription()).isEqualTo("New description");
+        assertThat(result.getInstagramHandle()).isEqualTo("@new_insta");
+        assertThat(result.getServiceRadiusKm()).isEqualTo(20);
+        assertThat(result.getWhatsapp()).isNull();
+
+        verify(profileRepository, times(1)).save(existingProfile);
+    }
+
+    @Test
+    @DisplayName("Should throw 404 Not Found when trying to update non-existent profile")
+    void partialUpdateNotFound() {
+        UpdateProfessionalProfileDTO dto = new UpdateProfessionalProfileDTO(
+                "New description", null, null, null
+        );
+
+        when(profileRepository.findByUserId("123")).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+                service.partialUpdate("123", dto)
+        );
+
+        assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        verify(profileRepository, never()).save(any());
     }
 }
