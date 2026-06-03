@@ -1,6 +1,7 @@
 package sodresoftwares.homebeauty.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import sodresoftwares.homebeauty.dto.ProfessionalBlockDTO;
@@ -18,6 +21,8 @@ import sodresoftwares.homebeauty.dto.ProvidedServiceDTO;
 import sodresoftwares.homebeauty.dto.WorkingHourDTO;
 import sodresoftwares.homebeauty.enums.ServiceLocationType;
 import sodresoftwares.homebeauty.infra.security.SecurityFilter;
+import sodresoftwares.homebeauty.model.user.User;
+import sodresoftwares.homebeauty.model.user.UserRole;
 import sodresoftwares.homebeauty.services.ProfessionalCatalogService;
 
 import java.math.BigDecimal;
@@ -58,9 +63,18 @@ class ProfessionalCatalogControllerTest {
     private WorkingHourDTO workingHourDTO;
     private ProfessionalBlockDTO blockDTO;
     private ProfessionalBlockResponseDTO blockResponseDTO;
+    private User loggedInUser;
 
     @BeforeEach
     void setUp() {
+         loggedInUser = User.builder()
+                .id("123")
+                .firstName("Daniel")
+                .lastName("Sodre")
+                .login("daniel@test.com")
+                .role(UserRole.USER)
+                .build();
+
         providedServiceDTO = new ProvidedServiceDTO(
                 null, "Hair Cut", "Professional hair cut", ServiceLocationType.CLIENT_LOCATION_ONLY,
                 BigDecimal.valueOf(50.0), 30, "cat-hair", List.of("img.jpg")
@@ -75,8 +89,16 @@ class ProfessionalCatalogControllerTest {
 
         blockDTO = new ProfessionalBlockDTO("Vacation", startDate, endDate);
         blockResponseDTO = new ProfessionalBlockResponseDTO("block-123", "Vacation", startDate, endDate);
+
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(loggedInUser, null, loggedInUser.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext(); // Limpa o "cache" de segurança após CADA teste!
+    }
     // ==================== PROVIDED SERVICE TESTS ====================
 
     @Test
@@ -87,7 +109,7 @@ class ProfessionalCatalogControllerTest {
                         .content(objectMapper.writeValueAsString(providedServiceDTO)))
                 .andExpect(status().isCreated());
 
-        verify(catalogService).addProvidedService(any(ProvidedServiceDTO.class));
+        verify(catalogService).addProvidedService(any(User.class), any(ProvidedServiceDTO.class));
     }
 
     @Test
@@ -108,7 +130,7 @@ class ProfessionalCatalogControllerTest {
     @Test
     @DisplayName("Should get my services successfully (HTTP 200)")
     void testGetMyServices_Success() throws Exception {
-        when(catalogService.getMyProvidedServices()).thenReturn(List.of(providedServiceDTO));
+        when(catalogService.getMyProvidedServices(any(User.class))).thenReturn(List.of(providedServiceDTO));
 
         mockMvc.perform(get("/professionals/catalog/services"))
                 .andExpect(status().isOk())
@@ -124,7 +146,7 @@ class ProfessionalCatalogControllerTest {
                         .content(objectMapper.writeValueAsString(providedServiceDTO)))
                 .andExpect(status().isNoContent());
 
-        verify(catalogService).updateService(eq("serv-123"), any(ProvidedServiceDTO.class));
+        verify(catalogService).updateService(any(User.class), eq("serv-123"), any(ProvidedServiceDTO.class));
     }
 
     @Test
@@ -133,7 +155,7 @@ class ProfessionalCatalogControllerTest {
         mockMvc.perform(delete("/professionals/catalog/services/serv-123"))
                 .andExpect(status().isNoContent());
 
-        verify(catalogService).deleteService("serv-123");
+        verify(catalogService).deleteService(eq(loggedInUser), eq("serv-123"));
     }
 
     // ==================== WORKING HOUR TESTS ====================
@@ -146,7 +168,7 @@ class ProfessionalCatalogControllerTest {
                         .content(objectMapper.writeValueAsString(workingHourDTO)))
                 .andExpect(status().isCreated());
 
-        verify(catalogService).addWorkingHour(any(WorkingHourDTO.class));
+        verify(catalogService).addWorkingHour(any(User.class), any(WorkingHourDTO.class));
     }
 
     @Test
@@ -169,7 +191,7 @@ class ProfessionalCatalogControllerTest {
     @Test
     @DisplayName("Should get my working hours successfully (HTTP 200)")
     void testGetMyWorkingHours_Success() throws Exception {
-        when(catalogService.getMyWorkingHours()).thenReturn(List.of(workingHourDTO));
+        when(catalogService.getMyWorkingHours(any(User.class))).thenReturn(List.of(workingHourDTO));
 
         mockMvc.perform(get("/professionals/catalog/working-hours"))
                 .andExpect(status().isOk())
@@ -185,7 +207,7 @@ class ProfessionalCatalogControllerTest {
                         .content(objectMapper.writeValueAsString(workingHourDTO)))
                 .andExpect(status().isNoContent());
 
-        verify(catalogService).updateWorkingHour(eq("wh-123"), any(WorkingHourDTO.class));
+        verify(catalogService).updateWorkingHour(any(User.class), eq("wh-123"), any(WorkingHourDTO.class));
     }
 
     @Test
@@ -194,7 +216,7 @@ class ProfessionalCatalogControllerTest {
         mockMvc.perform(delete("/professionals/catalog/working-hours/wh-123"))
                 .andExpect(status().isNoContent());
 
-        verify(catalogService).deleteWorkingHour("wh-123");
+        verify(catalogService).deleteWorkingHour(eq(loggedInUser), eq("wh-123"));
     }
 
     // ==================== BLOCK TESTS ====================
@@ -207,7 +229,7 @@ class ProfessionalCatalogControllerTest {
                         .content(objectMapper.writeValueAsString(blockDTO)))
                 .andExpect(status().isCreated());
 
-        verify(catalogService).createBlock(any(ProfessionalBlockDTO.class));
+        verify(catalogService).createBlock(any(User.class), any(ProfessionalBlockDTO.class));
     }
 
     @Test
@@ -226,7 +248,7 @@ class ProfessionalCatalogControllerTest {
     @Test
     @DisplayName("Should get my blocks successfully (HTTP 200)")
     void testGetMyBlocks_Success() throws Exception {
-        when(catalogService.getMyBlocks()).thenReturn(List.of(blockResponseDTO));
+        when(catalogService.getMyBlocks(any(User.class))).thenReturn(List.of(blockResponseDTO));
 
         mockMvc.perform(get("/professionals/catalog/blocks"))
                 .andExpect(status().isOk())

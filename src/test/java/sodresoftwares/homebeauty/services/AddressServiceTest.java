@@ -1,6 +1,5 @@
 package sodresoftwares.homebeauty.services;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,9 +9,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.dto.AddressDTO;
 import sodresoftwares.homebeauty.model.Address;
@@ -48,12 +44,6 @@ class AddressServiceTest {
 
     @Mock
     private StateRepository stateRepository;
-
-    @Mock
-    private SecurityContext securityContext;
-
-    @Mock
-    private Authentication authentication;
 
     @InjectMocks
     private AddressService addressService;
@@ -121,16 +111,6 @@ class AddressServiceTest {
                 "SP",
                 "São Paulo"
         );
-
-        // Mock security context
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getPrincipal()).thenReturn(currentUser);
-        SecurityContextHolder.setContext(securityContext);
-    }
-
-    @AfterEach
-    void tearDown() {
-        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -148,7 +128,7 @@ class AddressServiceTest {
         when(addressRepository.save(any(Address.class))).thenReturn(null);
 
         // Act
-        addressService.createAddress(baseCreateDTO);
+;        addressService.createAddress(currentUser, baseCreateDTO);
 
         // Assert
         verify(stateRepository).findByUfIgnoreCase("RJ");
@@ -187,7 +167,7 @@ class AddressServiceTest {
         when(addressRepository.save(any(Address.class))).thenReturn(null);
 
         // Act
-        addressService.createAddress(existingLocationDTO);
+        addressService.createAddress(currentUser, existingLocationDTO);
 
         // Assert
         verify(stateRepository).findByUfIgnoreCase("SP");
@@ -212,7 +192,7 @@ class AddressServiceTest {
         when(addressRepository.findByUserId("user-123")).thenReturn(userAddresses);
 
         // Act
-        List<AddressDTO> result = addressService.getMyAddresses();
+        List<AddressDTO> result = addressService.getMyAddresses(currentUser);
 
         // Assert
         assertThat(result).hasSize(1);
@@ -236,7 +216,7 @@ class AddressServiceTest {
         when(addressRepository.findByUserId("user-123")).thenReturn(List.of());
 
         // Act
-        List<AddressDTO> result = addressService.getMyAddresses();
+        List<AddressDTO> result = addressService.getMyAddresses(currentUser);
 
         // Assert
         assertThat(result).isEmpty();
@@ -255,7 +235,7 @@ class AddressServiceTest {
         when(addressRepository.save(any(Address.class))).thenReturn(null);
 
         // Act
-        addressService.updateAddress("addr-123", baseUpdateDTO);
+        addressService.updateAddress(currentUser, "addr-123", baseUpdateDTO);
 
         // Assert
         verify(addressRepository).findById("addr-123");
@@ -285,7 +265,7 @@ class AddressServiceTest {
         when(addressRepository.findById("non-existent")).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> addressService.updateAddress("non-existent", baseUpdateDTO))
+        assertThatThrownBy(() -> addressService.updateAddress(currentUser, "non-existent", baseUpdateDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
                 .hasMessage("404 NOT_FOUND \"Address not found\"");
@@ -307,7 +287,7 @@ class AddressServiceTest {
         when(addressRepository.findById("other-addr")).thenReturn(Optional.of(otherUserAddress));
 
         // Act & Assert
-        assertThatThrownBy(() -> addressService.updateAddress("other-addr", baseUpdateDTO))
+        assertThatThrownBy(() -> addressService.updateAddress(currentUser, "other-addr", baseUpdateDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
                 .hasMessage("403 FORBIDDEN \"You do not have permission to edit this address\"");

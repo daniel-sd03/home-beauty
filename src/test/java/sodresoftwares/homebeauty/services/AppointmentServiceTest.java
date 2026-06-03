@@ -9,9 +9,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.dto.AppointmentCreateDTO;
 import sodresoftwares.homebeauty.dto.AppointmentResponseDTO;
@@ -54,12 +51,6 @@ class AppointmentServiceTest {
 
     @Mock
     private AddressRepository addressRepository;
-
-    @Mock
-    private SecurityContext securityContext;
-
-    @Mock
-    private Authentication authentication;
 
     @InjectMocks
     private AppointmentService appointmentService;
@@ -155,11 +146,6 @@ class AppointmentServiceTest {
                 .professionalName("Profissional Teste")
                 .price(BigDecimal.valueOf(50.00))
                 .build();
-
-        // Mock security context
-        lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
-        lenient().when(authentication.getPrincipal()).thenReturn(client);
-        SecurityContextHolder.setContext(securityContext);
     }
 
     @Test
@@ -174,7 +160,7 @@ class AppointmentServiceTest {
         when(appointmentRepository.save(any(Appointment.class))).thenReturn(testAppointment);
 
         // Act
-        AppointmentResponseDTO result = appointmentService.createAppointment(validCreateDTO);
+        AppointmentResponseDTO result = appointmentService.createAppointment(client, validCreateDTO);
 
         // Assert
         assertThat(result).isNotNull();
@@ -204,7 +190,7 @@ class AppointmentServiceTest {
         when(serviceRepository.findById("service-123")).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> appointmentService.createAppointment(validCreateDTO))
+        assertThatThrownBy(() -> appointmentService.createAppointment(client, validCreateDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
                 .hasMessage("404 NOT_FOUND \"Provided Service not found.\"");
@@ -230,7 +216,7 @@ class AppointmentServiceTest {
         );
 
         // Act & Assert
-        assertThatThrownBy(() -> appointmentService.createAppointment(invalidDTO))
+        assertThatThrownBy(() -> appointmentService.createAppointment(client, invalidDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
                 .hasMessage("400 BAD_REQUEST \"This service is only available at the client's location.\"");
@@ -255,7 +241,7 @@ class AppointmentServiceTest {
         );
 
         // Act & Assert
-        assertThatThrownBy(() -> appointmentService.createAppointment(invalidDTO))
+        assertThatThrownBy(() -> appointmentService.createAppointment(client, invalidDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
                 .hasMessage("400 BAD_REQUEST \"Address ID is required.\"");
@@ -273,7 +259,7 @@ class AppointmentServiceTest {
         when(addressRepository.findById("addr-prof")).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> appointmentService.createAppointment(validCreateDTO))
+        assertThatThrownBy(() -> appointmentService.createAppointment(client, validCreateDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
                 .hasMessage("404 NOT_FOUND \"Address not found.\"");
@@ -300,7 +286,7 @@ class AppointmentServiceTest {
         );
 
         // Act & Assert
-        assertThatThrownBy(() -> appointmentService.createAppointment(invalidDTO))
+        assertThatThrownBy(() -> appointmentService.createAppointment(client, invalidDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
                 .hasMessage("403 FORBIDDEN \"Access denied: The address must belong to the client.\"");
@@ -326,7 +312,7 @@ class AppointmentServiceTest {
         );
 
         // Act & Assert
-        assertThatThrownBy(() -> appointmentService.createAppointment(invalidDTO))
+        assertThatThrownBy(() -> appointmentService.createAppointment(client, invalidDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
                 .hasMessage("403 FORBIDDEN \"Access denied: The address must belong to the selected professional.\"");
@@ -347,7 +333,7 @@ class AppointmentServiceTest {
                 .thenReturn(true);
 
         // Act & Assert
-        assertThatThrownBy(() -> appointmentService.createAppointment(validCreateDTO))
+        assertThatThrownBy(() -> appointmentService.createAppointment(client, validCreateDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
                 .hasMessage("409 CONFLICT \"The professional already has an appointment scheduled for this time slot.\"");
@@ -367,7 +353,7 @@ class AppointmentServiceTest {
                 .thenReturn(appointments);
 
         // Act
-        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsByClient();
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsByClient(client);
 
         // Assert
         assertThat(result).hasSize(1);
@@ -385,7 +371,7 @@ class AppointmentServiceTest {
                 .thenReturn(List.of());
 
         // Act
-        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsByClient();
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsByClient(client);
 
         // Assert
         assertThat(result).isEmpty();
@@ -397,13 +383,12 @@ class AppointmentServiceTest {
     @DisplayName("Should get appointments by professional successfully")
     void shouldGetAppointmentsByProfessionalSuccessfully() {
         // Arrange
-        when(authentication.getPrincipal()).thenReturn(professional);
         List<Appointment> appointments = List.of(testAppointment);
         when(appointmentRepository.findByProfessionalUser_IdOrderByStartTimeAsc("prof-123"))
                 .thenReturn(appointments);
 
         // Act
-        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsByProfessional();
+        List<AppointmentResponseDTO> result = appointmentService.getAppointmentsByProfessional(professional);
 
         // Assert
         assertThat(result).hasSize(1);
@@ -419,7 +404,7 @@ class AppointmentServiceTest {
         when(appointmentRepository.findById("apt-123")).thenReturn(Optional.of(testAppointment));
 
         // Act
-        AppointmentResponseDTO result = appointmentService.getAppointmentById("apt-123");
+        AppointmentResponseDTO result = appointmentService.getAppointmentById(client, "apt-123");
 
         // Assert
         assertThat(result).isNotNull();
@@ -433,11 +418,10 @@ class AppointmentServiceTest {
     @DisplayName("Should get appointment by ID successfully for professional")
     void shouldGetAppointmentByIdSuccessfullyForProfessional() {
         // Arrange
-        when(authentication.getPrincipal()).thenReturn(professional);
         when(appointmentRepository.findById("apt-123")).thenReturn(Optional.of(testAppointment));
 
         // Act
-        AppointmentResponseDTO result = appointmentService.getAppointmentById("apt-123");
+        AppointmentResponseDTO result = appointmentService.getAppointmentById(client, "apt-123");
 
         // Assert
         assertThat(result).isNotNull();
@@ -454,11 +438,10 @@ class AppointmentServiceTest {
                 .id("admin-123")
                 .role(UserRole.ADMIN)
                 .build();
-        when(authentication.getPrincipal()).thenReturn(admin);
         when(appointmentRepository.findById("apt-123")).thenReturn(Optional.of(testAppointment));
 
         // Act
-        AppointmentResponseDTO result = appointmentService.getAppointmentById("apt-123");
+        AppointmentResponseDTO result = appointmentService.getAppointmentById(client, "apt-123");
 
         // Assert
         assertThat(result).isNotNull();
@@ -474,7 +457,7 @@ class AppointmentServiceTest {
         when(appointmentRepository.findById("non-existent")).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> appointmentService.getAppointmentById("non-existent"))
+        assertThatThrownBy(() -> appointmentService.getAppointmentById(client, "non-existent"))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
                 .hasMessage("404 NOT_FOUND \"Appointment not found.\"");
@@ -491,11 +474,10 @@ class AppointmentServiceTest {
                 .login("other@example.com")
                 .role(UserRole.USER)
                 .build();
-        when(authentication.getPrincipal()).thenReturn(otherUser);
         when(appointmentRepository.findById("apt-123")).thenReturn(Optional.of(testAppointment));
 
         // Act & Assert
-        assertThatThrownBy(() -> appointmentService.getAppointmentById("apt-123"))
+        assertThatThrownBy(() -> appointmentService.getAppointmentById(otherUser, "apt-123"))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
                 .hasMessage("403 FORBIDDEN \"Access denied: You are not part of this appointment.\"");
@@ -508,13 +490,12 @@ class AppointmentServiceTest {
     @DisplayName("Should throw NOT_FOUND when updating status of non-existent appointment")
     void shouldThrowNotFoundWhenUpdatingStatusOfNonExistentAppointment() {
         // Arrange
-        when(authentication.getPrincipal()).thenReturn(professional);
         when(appointmentRepository.findById("non-existent")).thenReturn(Optional.empty());
 
         AppointmentStatusUpdateDTO updateDTO = new AppointmentStatusUpdateDTO(AppointmentStatus.CONFIRMED);
 
         // Act & Assert
-        assertThatThrownBy(() -> appointmentService.updateStatus("non-existent", updateDTO))
+        assertThatThrownBy(() -> appointmentService.updateStatus(professional, "non-existent", updateDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
                 .hasMessage("404 NOT_FOUND \"Appointment not found.\"");
@@ -527,14 +508,13 @@ class AppointmentServiceTest {
     @DisplayName("Should allow Professional to update status to any value (e.g., CONFIRMED)")
     void shouldAllowProfessionalToUpdateStatus() {
         // Arrange
-        when(authentication.getPrincipal()).thenReturn(professional);
         when(appointmentRepository.findById("apt-123")).thenReturn(Optional.of(testAppointment));
         when(appointmentRepository.save(any(Appointment.class))).thenReturn(null);
 
         AppointmentStatusUpdateDTO updateDTO = new AppointmentStatusUpdateDTO(AppointmentStatus.CONFIRMED);
 
         // Act
-        appointmentService.updateStatus("apt-123", updateDTO);
+        appointmentService.updateStatus(professional, "apt-123", updateDTO);
 
         // Assert
         verify(appointmentRepository).findById("apt-123");
@@ -557,7 +537,7 @@ class AppointmentServiceTest {
         AppointmentStatusUpdateDTO updateDTO = new AppointmentStatusUpdateDTO(AppointmentStatus.CANCELLED);
 
         // Act
-        appointmentService.updateStatus("apt-123", updateDTO);
+        appointmentService.updateStatus(client, "apt-123", updateDTO);
 
         // Assert
         verify(appointmentRepository).findById("apt-123");
@@ -578,7 +558,7 @@ class AppointmentServiceTest {
         AppointmentStatusUpdateDTO updateDTO = new AppointmentStatusUpdateDTO(AppointmentStatus.CONFIRMED);
 
         // Act & Assert
-        assertThatThrownBy(() -> appointmentService.updateStatus("apt-123", updateDTO))
+        assertThatThrownBy(() -> appointmentService.updateStatus(client, "apt-123", updateDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
                 .hasMessage("403 FORBIDDEN \"Clients can only CANCEL appointments. Only professionals can update to other statuses.\"");
@@ -591,13 +571,12 @@ class AppointmentServiceTest {
     void shouldThrowForbiddenWhenUnrelatedUserUpdatesStatus() {
         // Arrange
         User hacker = User.builder().id("hacker-123").role(UserRole.USER).build();
-        when(authentication.getPrincipal()).thenReturn(hacker);
         when(appointmentRepository.findById("apt-123")).thenReturn(Optional.of(testAppointment));
 
         AppointmentStatusUpdateDTO updateDTO = new AppointmentStatusUpdateDTO(AppointmentStatus.CANCELLED);
 
         // Act & Assert
-        assertThatThrownBy(() -> appointmentService.updateStatus("apt-123", updateDTO))
+        assertThatThrownBy(() -> appointmentService.updateStatus(hacker, "apt-123", updateDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
                 .hasMessage("403 FORBIDDEN \"Access denied: You are not part of this appointment.\"");
@@ -605,3 +584,6 @@ class AppointmentServiceTest {
         verify(appointmentRepository, never()).save(any(Appointment.class));
     }
 }
+
+
+
