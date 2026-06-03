@@ -1,8 +1,8 @@
 package sodresoftwares.homebeauty.services;
 
-import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.dto.CompleteUserProfileDTO;
 import sodresoftwares.homebeauty.dto.UpdateUserFieldsDTO;
@@ -13,6 +13,7 @@ import sodresoftwares.homebeauty.repositories.UserRepository;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class UserService {
 
     private final UserRepository userRepository;

@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class ProfessionalCatalogService {
 
     private final ProfessionalProfileRepository profileRepository;
@@ -139,6 +140,23 @@ public class ProfessionalCatalogService {
     }
 
     @Transactional
+    public void deleteService(User loggedInUser, String serviceId) {
+        ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
+
+        // 1. Find the service by ID
+        ProvidedService existingService = providedServiceRepository.findById(serviceId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
+
+        // 2. SECURITY: Check if the service belongs to the logged-in professional
+        if (!existingService.getProfessional().getId().equals(professional.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to delete this service");
+        }
+
+        // 3. Delete the service
+        providedServiceRepository.delete(existingService);
+    }
+
+    @Transactional
     public void addWorkingHour(User loggedInUser, WorkingHourDTO data) {
         // 1. Get the current professional profile
         ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
@@ -189,23 +207,6 @@ public class ProfessionalCatalogService {
 
         // 4. Save to the database
         workingHourRepository.save(existingWorkingHour);
-    }
-
-    @Transactional
-    public void deleteService(User loggedInUser, String serviceId) {
-        ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
-
-        // 1. Find the service by ID
-        ProvidedService existingService = providedServiceRepository.findById(serviceId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
-
-        // 2. SECURITY: Check if the service belongs to the logged-in professional
-        if (!existingService.getProfessional().getId().equals(professional.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to delete this service");
-        }
-
-        // 3. Delete the service
-        providedServiceRepository.delete(existingService);
     }
 
     @Transactional
@@ -309,7 +310,6 @@ public class ProfessionalCatalogService {
         }
     }
 
-    @Transactional(readOnly = true)
     public List<ProfessionalBlockResponseDTO> getMyBlocks(User loggedInUser) {
         ProfessionalProfile profile = getCurrentUserProfile(loggedInUser);
 
