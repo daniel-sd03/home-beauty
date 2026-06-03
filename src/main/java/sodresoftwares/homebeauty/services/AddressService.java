@@ -1,7 +1,6 @@
 package sodresoftwares.homebeauty.services;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -29,10 +28,6 @@ public class AddressService {
         this.stateRepository = stateRepository;
     }
 
-    private User getCurrentUser() {
-        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    }
-
     private City resolveCityAndState(String cityName, String stateUf, String stateName) {
         State state = stateRepository.findByUfIgnoreCase(stateUf)
                 .orElseGet(() -> stateRepository.save(
@@ -46,8 +41,7 @@ public class AddressService {
     }
 
     @Transactional
-    public void createAddress(AddressDTO data) {
-        User user = getCurrentUser();
+    public void createAddress(User loggedInUser, AddressDTO data) {
         City city = resolveCityAndState(data.city(), data.stateUf(), data.stateName());
 
         Address address = Address.builder()
@@ -57,17 +51,16 @@ public class AddressService {
                 .neighborhood(data.neighborhood())
                 .zipCode(data.zipCode())
                 .city(city)
-                .user(user)
+                .user(loggedInUser)
                 .build();
 
         addressRepository.save(address);
     }
 
-    public List<AddressDTO> getMyAddresses() {
-        User user = getCurrentUser();
+    public List<AddressDTO> getMyAddresses(User loggedInUser) {
 
         // Fetch addresses for the logged-in user and map them to DTOs
-        return addressRepository.findByUserId(user.getId()).stream()
+        return addressRepository.findByUserId(loggedInUser.getId()).stream()
                 .map(address -> new AddressDTO(
                         address.getId(),
                         address.getStreet(),
@@ -83,15 +76,14 @@ public class AddressService {
     }
 
     @Transactional
-    public void updateAddress(String addressId, AddressDTO data) {
-        User user = getCurrentUser();
+    public void updateAddress(User loggedInUser, String addressId, AddressDTO data) {
 
         // 1. Find the address
         Address existingAddress = addressRepository.findById(addressId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Address not found"));
 
         // 2. SECURITY: Verify if the address belongs to the logged-in user
-        if (!existingAddress.getUser().getId().equals(user.getId())) {
+        if (!existingAddress.getUser().getId().equals(loggedInUser.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to edit this address");
         }
 

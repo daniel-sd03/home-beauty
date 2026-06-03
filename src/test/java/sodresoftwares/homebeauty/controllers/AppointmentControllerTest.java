@@ -1,6 +1,7 @@
 package sodresoftwares.homebeauty.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import sodresoftwares.homebeauty.dto.AppointmentCreateDTO;
@@ -18,6 +21,8 @@ import sodresoftwares.homebeauty.dto.AppointmentStatusUpdateDTO;
 import sodresoftwares.homebeauty.enums.AppointmentStatus;
 import sodresoftwares.homebeauty.enums.AppointmentType;
 import sodresoftwares.homebeauty.infra.security.SecurityFilter;
+import sodresoftwares.homebeauty.model.user.User;
+import sodresoftwares.homebeauty.model.user.UserRole;
 import sodresoftwares.homebeauty.services.AppointmentService;
 
 import java.math.BigDecimal;
@@ -56,9 +61,18 @@ class AppointmentControllerTest {
 
     private AppointmentCreateDTO appointmentCreateDTO;
     private AppointmentResponseDTO appointmentResponseDTO;
+    private User loggedInUser;
 
     @BeforeEach
     void setUp() {
+        loggedInUser = User.builder()
+                .id("123")
+                .firstName("Daniel")
+                .lastName("Sodre")
+                .login("daniel@test.com")
+                .role(UserRole.USER)
+                .build();
+
         // Initialize test data
         LocalDateTime startTime = LocalDateTime.now().plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0);
         LocalDateTime endTime = startTime.plusMinutes(60);
@@ -83,13 +97,22 @@ class AppointmentControllerTest {
                 AppointmentType.CLIENT_LOCATION,
                 "Please arrive 5 minutes early"
         );
+
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(loggedInUser, null, loggedInUser.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
     @DisplayName("Should create an appointment successfully")
     void testCreateAppointment_Success() throws Exception {
         // Arrange
-        when(appointmentService.createAppointment(any(AppointmentCreateDTO.class)))
+        when(appointmentService.createAppointment(any(User.class), any(AppointmentCreateDTO.class)))
                 .thenReturn(appointmentResponseDTO);
 
         // Act & Assert
@@ -98,7 +121,7 @@ class AppointmentControllerTest {
                 .content(objectMapper.writeValueAsString(appointmentCreateDTO)))
                 .andExpect(status().isCreated());
 
-        verify(appointmentService).createAppointment(any(AppointmentCreateDTO.class));
+        verify(appointmentService).createAppointment(any(User.class), any(AppointmentCreateDTO.class));
     }
 
     @Test
@@ -145,7 +168,7 @@ class AppointmentControllerTest {
     void testGetClientAppointments_Success() throws Exception {
         // Arrange
         List<AppointmentResponseDTO> appointments = List.of(appointmentResponseDTO);
-        when(appointmentService.getAppointmentsByClient())
+        when(appointmentService.getAppointmentsByClient(any(User.class)))
                 .thenReturn(appointments);
 
         // Act & Assert
@@ -162,7 +185,7 @@ class AppointmentControllerTest {
     @DisplayName("Should return empty list when client has no appointments")
     void testGetClientAppointments_EmptyList() throws Exception {
         // Arrange
-        when(appointmentService.getAppointmentsByClient())
+        when(appointmentService.getAppointmentsByClient(any(User.class)))
                 .thenReturn(List.of());
 
         // Act & Assert
@@ -177,7 +200,7 @@ class AppointmentControllerTest {
     void testGetProfessionalAppointments_Success() throws Exception {
         // Arrange
         List<AppointmentResponseDTO> appointments = List.of(appointmentResponseDTO);
-        when(appointmentService.getAppointmentsByProfessional())
+        when(appointmentService.getAppointmentsByProfessional(any(User.class)))
                 .thenReturn(appointments);
 
         // Act & Assert
@@ -193,7 +216,7 @@ class AppointmentControllerTest {
     @DisplayName("Should return empty list when professional has no appointments")
     void testGetProfessionalAppointments_EmptyList() throws Exception {
         // Arrange
-        when(appointmentService.getAppointmentsByProfessional())
+        when(appointmentService.getAppointmentsByProfessional(any(User.class)))
                 .thenReturn(List.of());
 
         // Act & Assert
@@ -208,7 +231,7 @@ class AppointmentControllerTest {
     void testGetAppointmentById_Success() throws Exception {
         // Arrange
         String appointmentId = "appointment-id-789";
-        when(appointmentService.getAppointmentById(appointmentId))
+        when(appointmentService.getAppointmentById(eq(loggedInUser), eq(appointmentId)))
                 .thenReturn(appointmentResponseDTO);
 
         // Act & Assert
@@ -225,7 +248,7 @@ class AppointmentControllerTest {
     @DisplayName("Should validate appointment response structure")
     void testAppointmentResponseStructure() throws Exception {
         // Arrange
-        when(appointmentService.getAppointmentById("appointment-id-789"))
+        when(appointmentService.getAppointmentById(eq(loggedInUser), eq("appointment-id-789")))
                 .thenReturn(appointmentResponseDTO);
 
         // Act & Assert
@@ -259,7 +282,7 @@ class AppointmentControllerTest {
                 .andExpect(status().isNoContent());
 
 
-        verify(appointmentService).updateStatus(eq(appointmentId),
+        verify(appointmentService).updateStatus(any(User.class), eq(appointmentId),
                 any(AppointmentStatusUpdateDTO.class));
     }
 

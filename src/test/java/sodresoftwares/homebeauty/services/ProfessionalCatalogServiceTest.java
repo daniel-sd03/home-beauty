@@ -1,6 +1,5 @@
 package sodresoftwares.homebeauty.services;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,9 +9,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.dto.ProfessionalBlockDTO;
 import sodresoftwares.homebeauty.dto.ProvidedServiceDTO;
@@ -61,12 +57,6 @@ class ProfessionalCatalogServiceTest {
 
     @Mock
     private AppointmentRepository appointmentRepository;
-
-    @Mock
-    private SecurityContext securityContext;
-
-    @Mock
-    private Authentication authentication;
 
     @InjectMocks
     private ProfessionalCatalogService catalogService;
@@ -127,15 +117,6 @@ class ProfessionalCatalogServiceTest {
                 .professional(professionalProfile)
                 .build();
 
-        // Mock security context
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getPrincipal()).thenReturn(currentUser);
-        SecurityContextHolder.setContext(securityContext);
-    }
-
-    @AfterEach
-    void tearDown() {
-        SecurityContextHolder.clearContext();
     }
 
     // ==================== PROVIDED SERVICE TESTS ====================
@@ -160,7 +141,7 @@ class ProfessionalCatalogServiceTest {
         when(providedServiceRepository.save(any(ProvidedService.class))).thenReturn(null);
 
         // Act
-        catalogService.addProvidedService(serviceDTO);
+        catalogService.addProvidedService(currentUser, serviceDTO);
 
         // Assert
         ArgumentCaptor<ProvidedService> serviceCaptor = ArgumentCaptor.forClass(ProvidedService.class);
@@ -186,7 +167,7 @@ class ProfessionalCatalogServiceTest {
         when(profileRepository.findByUserId("user-123")).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> catalogService.addProvidedService(serviceDTO))
+        assertThatThrownBy(() -> catalogService.addProvidedService(currentUser, serviceDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
 
@@ -205,7 +186,7 @@ class ProfessionalCatalogServiceTest {
         when(categoryRepository.findById("non-existent")).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> catalogService.addProvidedService(serviceDTO))
+        assertThatThrownBy(() -> catalogService.addProvidedService(currentUser, serviceDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
 
@@ -220,7 +201,7 @@ class ProfessionalCatalogServiceTest {
         when(profileRepository.findByUserId("user-123")).thenReturn(Optional.of(professionalProfile));
 
         // Act
-        List<ProvidedServiceDTO> result = catalogService.getMyProvidedServices();
+        List<ProvidedServiceDTO> result = catalogService.getMyProvidedServices(currentUser);
 
         // Assert
         assertThat(result).hasSize(1);
@@ -250,7 +231,7 @@ class ProfessionalCatalogServiceTest {
         when(providedServiceRepository.save(any(ProvidedService.class))).thenReturn(null);
 
         // Act
-        catalogService.updateService("serv-123", updateDTO);
+        catalogService.updateService(currentUser, "serv-123", updateDTO);
 
         // Assert
         ArgumentCaptor<ProvidedService> serviceCaptor = ArgumentCaptor.forClass(ProvidedService.class);
@@ -285,7 +266,7 @@ class ProfessionalCatalogServiceTest {
         when(providedServiceRepository.findById("serv-123")).thenReturn(Optional.of(testService));
 
         // Act & Assert
-        assertThatThrownBy(() -> catalogService.updateService("serv-123", updateDTO))
+        assertThatThrownBy(() -> catalogService.updateService(currentUser, "serv-123", updateDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
 
@@ -301,7 +282,7 @@ class ProfessionalCatalogServiceTest {
         doNothing().when(providedServiceRepository).delete(testService);
 
         // Act
-        catalogService.deleteService("serv-123");
+        catalogService.deleteService(currentUser, "serv-123");
 
         // Assert
         verify(providedServiceRepository).delete(testService);
@@ -322,7 +303,7 @@ class ProfessionalCatalogServiceTest {
         when(providedServiceRepository.findById("serv-123")).thenReturn(Optional.of(testService));
 
         // Act & Assert
-        assertThatThrownBy(() -> catalogService.deleteService("serv-123"))
+        assertThatThrownBy(() -> catalogService.deleteService(currentUser, "serv-123"))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
 
@@ -346,7 +327,7 @@ class ProfessionalCatalogServiceTest {
         when(workingHourRepository.save(any(WorkingHour.class))).thenReturn(null);
 
         // Act
-        catalogService.addWorkingHour(whDTO);
+        catalogService.addWorkingHour(currentUser, whDTO);
 
         // Assert
         ArgumentCaptor<WorkingHour> whCaptor = ArgumentCaptor.forClass(WorkingHour.class);
@@ -367,7 +348,7 @@ class ProfessionalCatalogServiceTest {
         when(profileRepository.findByUserId("user-123")).thenReturn(Optional.of(professionalProfile));
 
         // Act
-        List<WorkingHourDTO> result = catalogService.getMyWorkingHours();
+        List<WorkingHourDTO> result = catalogService.getMyWorkingHours(currentUser);
 
         // Assert
         assertThat(result).hasSize(1);
@@ -392,7 +373,7 @@ class ProfessionalCatalogServiceTest {
         when(workingHourRepository.save(any(WorkingHour.class))).thenReturn(null);
 
         // Act
-        catalogService.updateWorkingHour("wh-123", updateDTO);
+        catalogService.updateWorkingHour(currentUser, "wh-123", updateDTO);
 
         // Assert
         ArgumentCaptor<WorkingHour> whCaptor = ArgumentCaptor.forClass(WorkingHour.class);
@@ -423,7 +404,7 @@ class ProfessionalCatalogServiceTest {
         when(workingHourRepository.findById("wh-123")).thenReturn(Optional.of(testWorkingHour));
 
         // Act & Assert
-        assertThatThrownBy(() -> catalogService.updateWorkingHour("wh-123", updateDTO))
+        assertThatThrownBy(() -> catalogService.updateWorkingHour(currentUser, "wh-123", updateDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
 
@@ -439,7 +420,7 @@ class ProfessionalCatalogServiceTest {
         doNothing().when(workingHourRepository).delete(testWorkingHour);
 
         // Act
-        catalogService.deleteWorkingHour("wh-123");
+        catalogService.deleteWorkingHour(currentUser, "wh-123");
 
         // Assert
         verify(workingHourRepository).delete(testWorkingHour);
@@ -460,7 +441,7 @@ class ProfessionalCatalogServiceTest {
         when(workingHourRepository.findById("wh-123")).thenReturn(Optional.of(testWorkingHour));
 
         // Act & Assert
-        assertThatThrownBy(() -> catalogService.deleteWorkingHour("wh-123"))
+        assertThatThrownBy(() -> catalogService.deleteWorkingHour(currentUser, "wh-123"))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
 
@@ -497,7 +478,7 @@ class ProfessionalCatalogServiceTest {
         when(blockRepository.save(any(ProfessionalBlock.class))).thenReturn(null);
 
         // Act
-        catalogService.createBlock(blockDTO);
+        catalogService.createBlock(currentUser, blockDTO);
 
         // Assert
         ArgumentCaptor<ProfessionalBlock> blockCaptor = ArgumentCaptor.forClass(ProfessionalBlock.class);
@@ -520,7 +501,7 @@ class ProfessionalCatalogServiceTest {
         when(profileRepository.findByUserId("user-123")).thenReturn(Optional.of(professionalProfile));
 
         // Act & Assert
-        assertThatThrownBy(() -> catalogService.createBlock(blockDTO))
+        assertThatThrownBy(() -> catalogService.createBlock(currentUser, blockDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST);
 
@@ -539,7 +520,7 @@ class ProfessionalCatalogServiceTest {
         when(profileRepository.findByUserId("user-123")).thenReturn(Optional.of(professionalProfile));
 
         // Act & Assert
-        assertThatThrownBy(() -> catalogService.createBlock(blockDTO))
+        assertThatThrownBy(() -> catalogService.createBlock(currentUser, blockDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST);
 
@@ -564,7 +545,7 @@ class ProfessionalCatalogServiceTest {
         )).thenReturn(true);
 
         // Act & Assert
-        assertThatThrownBy(() -> catalogService.createBlock(blockDTO))
+        assertThatThrownBy(() -> catalogService.createBlock(currentUser, blockDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
 
@@ -594,7 +575,7 @@ class ProfessionalCatalogServiceTest {
         )).thenReturn(true);
 
         // Act & Assert
-        assertThatThrownBy(() -> catalogService.createBlock(blockDTO))
+        assertThatThrownBy(() -> catalogService.createBlock(currentUser, blockDTO))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
 
@@ -610,7 +591,7 @@ class ProfessionalCatalogServiceTest {
                 .thenReturn(List.of(testBlock));
 
         // Act
-        var result = catalogService.getMyBlocks();
+        var result = catalogService.getMyBlocks(currentUser);
 
         // Assert
         assertThat(result).hasSize(1);
@@ -618,3 +599,4 @@ class ProfessionalCatalogServiceTest {
         verify(blockRepository).findByProfessionalIdOrderByStartDateTimeAsc("prof-123");
     }
 }
+

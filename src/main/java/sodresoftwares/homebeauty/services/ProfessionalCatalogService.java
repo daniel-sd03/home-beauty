@@ -1,7 +1,6 @@
 package sodresoftwares.homebeauty.services;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -42,12 +41,8 @@ public class ProfessionalCatalogService {
     }
 
     // Helper method to always get the logged-in professional's profile
-    private ProfessionalProfile getCurrentUserProfile() {
-        User currentUser = (User) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
-
-        return profileRepository.findByUserId(currentUser.getId())
+    private ProfessionalProfile getCurrentUserProfile(User loggedInUser) {
+        return profileRepository.findByUserId(loggedInUser.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: User does not have a professional profile"));
     }
 
@@ -57,9 +52,9 @@ public class ProfessionalCatalogService {
     }
 
     @Transactional
-    public void addProvidedService(ProvidedServiceDTO data) {
+    public void addProvidedService(User loggedInUser, ProvidedServiceDTO data) {
         // 1. Get the current professional profile
-        ProfessionalProfile professional = getCurrentUserProfile();
+        ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
 
         // 2. Get the current category profile
         Category currentCategory = getCategoryById(data.categoryId());
@@ -84,8 +79,8 @@ public class ProfessionalCatalogService {
         providedServiceRepository.save(newService);
     }
 
-    public List<ProvidedServiceDTO> getMyProvidedServices() {
-        ProfessionalProfile professional = getCurrentUserProfile();
+    public List<ProvidedServiceDTO> getMyProvidedServices(User loggedInUser) {
+        ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
 
         // Maps the list of Entities to a list of DTOs to return to the front-end
         return professional.getServices().stream()
@@ -110,8 +105,8 @@ public class ProfessionalCatalogService {
     }
 
     @Transactional
-    public void updateService(String serviceId, ProvidedServiceDTO data) {
-        ProfessionalProfile professional = getCurrentUserProfile();
+    public void updateService(User loggedInUser, String serviceId, ProvidedServiceDTO data) {
+        ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
 
         // 1. Find the service by ID
         ProvidedService existingService = providedServiceRepository.findById(serviceId)
@@ -144,9 +139,9 @@ public class ProfessionalCatalogService {
     }
 
     @Transactional
-    public void addWorkingHour(WorkingHourDTO data) {
+    public void addWorkingHour(User loggedInUser, WorkingHourDTO data) {
         // 1. Get the current professional profile
-        ProfessionalProfile professional = getCurrentUserProfile();
+        ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
 
         // 2. Build the working hour linked to the profile
         WorkingHour newWorkingHour = WorkingHour.builder()
@@ -160,8 +155,8 @@ public class ProfessionalCatalogService {
         workingHourRepository.save(newWorkingHour);
     }
 
-    public List<WorkingHourDTO> getMyWorkingHours() {
-        ProfessionalProfile professional = getCurrentUserProfile();
+    public List<WorkingHourDTO> getMyWorkingHours(User loggedInUser) {
+        ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
 
         // Maps the list of Entities to a list of DTOs to return to the front-end
         return professional.getWorkingHours().stream()
@@ -175,8 +170,8 @@ public class ProfessionalCatalogService {
     }
 
     @Transactional
-    public void updateWorkingHour(String workingHourId, WorkingHourDTO data) {
-        ProfessionalProfile professional = getCurrentUserProfile();
+    public void updateWorkingHour(User loggedInUser, String workingHourId, WorkingHourDTO data) {
+        ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
 
         // 1. Find the working hour by ID
         WorkingHour existingWorkingHour = workingHourRepository.findById(workingHourId)
@@ -197,8 +192,8 @@ public class ProfessionalCatalogService {
     }
 
     @Transactional
-    public void deleteService(String serviceId) {
-        ProfessionalProfile professional = getCurrentUserProfile();
+    public void deleteService(User loggedInUser, String serviceId) {
+        ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
 
         // 1. Find the service by ID
         ProvidedService existingService = providedServiceRepository.findById(serviceId)
@@ -214,8 +209,8 @@ public class ProfessionalCatalogService {
     }
 
     @Transactional
-    public void deleteWorkingHour(String workingHourId) {
-        ProfessionalProfile professional = getCurrentUserProfile();
+    public void deleteWorkingHour(User loggedInUser, String workingHourId) {
+        ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
 
         // 1. Find the working hour by ID
         WorkingHour existingWorkingHour = workingHourRepository.findById(workingHourId)
@@ -231,8 +226,8 @@ public class ProfessionalCatalogService {
     }
 
     @Transactional
-    public void createBlock(ProfessionalBlockDTO data) {
-        ProfessionalProfile profile = getCurrentUserProfile();
+    public void createBlock(User loggedInUser, ProfessionalBlockDTO data) {
+        ProfessionalProfile profile = getCurrentUserProfile(loggedInUser);
 
         // Calculate time
         LocalDateTime checkStart = data.startDateTime().withSecond(0).withNano(0);;
@@ -315,8 +310,8 @@ public class ProfessionalCatalogService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProfessionalBlockResponseDTO> getMyBlocks() {
-        ProfessionalProfile profile = getCurrentUserProfile();
+    public List<ProfessionalBlockResponseDTO> getMyBlocks(User loggedInUser) {
+        ProfessionalProfile profile = getCurrentUserProfile(loggedInUser);
 
         return blockRepository.findByProfessionalIdOrderByStartDateTimeAsc(profile.getId())
                 .stream()

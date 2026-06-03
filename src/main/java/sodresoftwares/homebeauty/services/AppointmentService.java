@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -36,14 +35,8 @@ public class AppointmentService {
     private final ProvidedServiceRepository serviceRepository;
     private final AddressRepository addressRepository;
 
-    private User getCurrentUser() {
-        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    }
-
     @Transactional
-    public AppointmentResponseDTO createAppointment(AppointmentCreateDTO dto) {
-        // Get the current User
-        User client = getCurrentUser();
+    public AppointmentResponseDTO createAppointment(User LoggedInClient, AppointmentCreateDTO dto) {
 
         //get the provided service and validate if it exists
         ProvidedService providedService = serviceRepository.findById(dto.providedServicesId())
@@ -57,7 +50,7 @@ public class AppointmentService {
         AppointmentType requestedType = validateAndGetAppointmentType(dto, providedService);
 
         // Resolve and Validate Address (Extracted Method)
-        Address address = resolveAndValidateAddress(dto.addressId(), requestedType, client, professionalUser);
+        Address address = resolveAndValidateAddress(dto.addressId(), requestedType, LoggedInClient, professionalUser);
 
         // Calculate end time based on service duration
         var endTime = dto.startTime().plusMinutes(providedService.getDurationMinutes());
@@ -67,7 +60,7 @@ public class AppointmentService {
 
         // 7. Build the Appointment with the Snapshot strategy
         Appointment appointment = Appointment.builder()
-                .client(client)
+                .client(LoggedInClient)
                 .professionalUser(professionalUser)
                 .service(providedService)
                 .address(address)
@@ -146,12 +139,9 @@ public class AppointmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<AppointmentResponseDTO> getAppointmentsByClient() {
+    public List<AppointmentResponseDTO> getAppointmentsByClient(User LoggedInClient) {
 
-        //  Get the current User
-        User client = getCurrentUser();
-
-        List<Appointment> appointments = appointmentRepository.findByClient_IdOrderByStartTimeAsc(client.getId());
+        List<Appointment> appointments = appointmentRepository.findByClient_IdOrderByStartTimeAsc(LoggedInClient.getId());
 
         return appointments.stream()
                 .map(AppointmentResponseDTO::new)
@@ -159,12 +149,9 @@ public class AppointmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<AppointmentResponseDTO> getAppointmentsByProfessional() {
+    public List<AppointmentResponseDTO> getAppointmentsByProfessional(User LoggedInProfessional) {
 
-        // Get the current User (acting as the professional)
-        User professional = getCurrentUser();
-
-        List<Appointment> appointments = appointmentRepository.findByProfessionalUser_IdOrderByStartTimeAsc(professional.getId());
+        List<Appointment> appointments = appointmentRepository.findByProfessionalUser_IdOrderByStartTimeAsc(LoggedInProfessional.getId());
 
         return appointments.stream()
                 .map(AppointmentResponseDTO::new)
@@ -172,18 +159,16 @@ public class AppointmentService {
     }
 
     @Transactional(readOnly = true)
-    public AppointmentResponseDTO getAppointmentById(String id) {
+    public AppointmentResponseDTO getAppointmentById(User loggedInUser, String id) {
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found."));
 
-        User currentUser = getCurrentUser();
-
         // Security check: only the involved client or professional can view it
-        boolean isClient = appointment.getClient().getId().equals(currentUser.getId());
-        boolean isProfessional = appointment.getProfessionalUser().getId().equals(currentUser.getId());
+        boolean isClient = appointment.getClient().getId().equals(loggedInUser.getId());
+        boolean isProfessional = appointment.getProfessionalUser().getId().equals(loggedInUser.getId());
 
         // Check if the user is an Administrator
-        boolean isAdmin = currentUser.getRole() == sodresoftwares.homebeauty.model.user.UserRole.ADMIN;
+        boolean isAdmin = loggedInUser.getRole() == sodresoftwares.homebeauty.model.user.UserRole.ADMIN;
 
         if (!(isClient || isProfessional || isAdmin)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: You are not part of this appointment.");
@@ -193,23 +178,20 @@ public class AppointmentService {
     }
 
     @Transactional
-    public void updateStatus(String id, AppointmentStatusUpdateDTO dto) {
+    public void updateStatus(User loggedInUser, String id, AppointmentStatusUpdateDTO dto) {
         log.info("Attempting to update status of appointment ID: {} to {}", id, dto.status());
-
-        // Get the current User
-        User currentUser = getCurrentUser();
 
         // Fetch the appointment
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found."));
 
         // Identify who is trying to update
-        boolean isProfessional = appointment.getProfessionalUser().getId().equals(currentUser.getId());
-        boolean isClient = appointment.getClient().getId().equals(currentUser.getId());
+        boolean isProfessional = appointment.getProfessionalUser().getId().equals(loggedInUser.getId());
+        boolean isClient = appointment.getClient().getId().equals(loggedInUser.getId());
 
         // 1. SECURITY: Check if user is part of the appointment
         if (!isProfessional && !isClient) {
-            log.warn("Security breach attempt: User ID {} tried to modify appointment ID {}", currentUser.getId(), id);
+            log.warn("Security breach attempt: User ID {} tried to modify appointment ID {}", loggedInUser.getId(), id);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: You are not part of this appointment.");
         }
 
@@ -217,7 +199,7 @@ public class AppointmentService {
         if (isClient && !isProfessional) {
             if (dto.status() != AppointmentStatus.CANCELLED) {
                 log.warn("Rule violation: Client ID {} attempted to set status to {} for appointment ID {}",
-                        currentUser.getId(), dto.status(), id);
+                        loggedInUser.getId(), dto.status(), id);
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Clients can only CANCEL appointments. Only professionals can update to other statuses.");
             }
         }
