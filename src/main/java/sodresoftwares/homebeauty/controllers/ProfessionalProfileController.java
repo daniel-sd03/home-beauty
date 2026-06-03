@@ -1,28 +1,43 @@
 package sodresoftwares.homebeauty.controllers;
 
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import sodresoftwares.homebeauty.dto.ProfessionalUpgradeDTO;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import sodresoftwares.homebeauty.dto.ProfessionalOnboardingDTO;
+import sodresoftwares.homebeauty.dto.UpdateProfessionalProfileDTO;
+import sodresoftwares.homebeauty.model.ProfessionalProfile;
+import sodresoftwares.homebeauty.model.user.User;
 import sodresoftwares.homebeauty.services.ProfessionalProfileService;
 
 @RestController
 @RequestMapping("/professionals/profile")
 public class ProfessionalProfileController {
 
-    private final ProfessionalProfileService professionalService;
+    private final ProfessionalProfileService service;
 
-    public ProfessionalProfileController(ProfessionalProfileService professionalService) {
-        this.professionalService = professionalService;
+    public ProfessionalProfileController(ProfessionalProfileService service) {
+        this.service = service;
     }
 
-    @PostMapping("/upgrade")
-    public ResponseEntity<Void> upgradeToProfessional(@RequestBody @Valid ProfessionalUpgradeDTO data) {
-        professionalService.upgradeToProfessional(data);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    @PostMapping("/me/onboarding")
+    public ResponseEntity<ProfessionalProfile> onboardMyProfile(
+            @RequestBody @Valid ProfessionalOnboardingDTO dto,
+            @AuthenticationPrincipal User loggedInUser) {
+
+        ProfessionalProfile updatedProfile = service.onboardProfessional(loggedInUser.getId(), dto);
+
+        return ResponseEntity.ok(updatedProfile);
+    }
+
+
+    @PatchMapping("/me")
+    public ResponseEntity<ProfessionalProfile> updateMyProfile(
+            @RequestBody @Valid UpdateProfessionalProfileDTO dto,
+            @AuthenticationPrincipal User loggedInUser) {
+
+        ProfessionalProfile updatedProfile = service.partialUpdate(loggedInUser.getId(), dto);
+
+        return ResponseEntity.ok(updatedProfile);
     }
 }
