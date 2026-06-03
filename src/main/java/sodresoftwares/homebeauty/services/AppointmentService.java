@@ -27,6 +27,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AppointmentService {
 
     private static final Logger log = LoggerFactory.getLogger(AppointmentService.class);
@@ -138,7 +139,6 @@ public class AppointmentService {
         }
     }
 
-    @Transactional(readOnly = true)
     public List<AppointmentResponseDTO> getAppointmentsByClient(User LoggedInClient) {
 
         List<Appointment> appointments = appointmentRepository.findByClient_IdOrderByStartTimeAsc(LoggedInClient.getId());
@@ -148,7 +148,6 @@ public class AppointmentService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
     public List<AppointmentResponseDTO> getAppointmentsByProfessional(User LoggedInProfessional) {
 
         List<Appointment> appointments = appointmentRepository.findByProfessionalUser_IdOrderByStartTimeAsc(LoggedInProfessional.getId());
@@ -158,7 +157,6 @@ public class AppointmentService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
     public AppointmentResponseDTO getAppointmentById(User loggedInUser, String id) {
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found."));

@@ -16,6 +16,7 @@ import sodresoftwares.homebeauty.repositories.StateRepository;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class AddressService {
 
     private final AddressRepository addressRepository;

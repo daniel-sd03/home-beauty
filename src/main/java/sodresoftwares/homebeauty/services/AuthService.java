@@ -25,6 +25,7 @@ import java.time.ZoneOffset;
 
 
 @Service
+@Transactional(readOnly = true)
 public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
@@ -138,6 +139,7 @@ public class AuthService {
         log.info("Account successfully activated for user: {}", user.getLogin());
     }
 
+    @Transactional
     public void resendVerificationCode(String login) {
         // Find the user in the database
         User user = (User) userRepository.findByLogin(login);
