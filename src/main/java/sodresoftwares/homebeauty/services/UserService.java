@@ -1,5 +1,6 @@
 package sodresoftwares.homebeauty.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,7 @@ import sodresoftwares.homebeauty.repositories.UserRepository;
 import java.util.List;
 
 @Service
+@Slf4j
 @Transactional(readOnly = true)
 public class UserService {
 
@@ -24,6 +26,7 @@ public class UserService {
 
     @Transactional
     public User completeUserProfile(String userId, CompleteUserProfileDTO dto) {
+        log.info("User {} completed their full profile", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
@@ -37,6 +40,7 @@ public class UserService {
 
     @Transactional
     public User partialUpdate(String userId, UpdateUserFieldsDTO dto) {
+        log.info("User {} partially updated their profile", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 

@@ -17,8 +17,9 @@ import sodresoftwares.homebeauty.repositories.SpecialtyRepository;
 import java.util.HashSet;
 import java.util.List;
 
-@Slf4j
+
 @Service
+@Slf4j
 @Transactional(readOnly = true)
 public class ProfessionalProfileService {
 
@@ -37,11 +38,8 @@ public class ProfessionalProfileService {
 
     @Transactional
     public ProfessionalProfile onboardProfessional(String userId, ProfessionalOnboardingDTO dto) {
-        log.info("Starting onboarding process for user ID: {}", userId);
-
         // Validate professional profile
         if (profileRepository.findByUserId(userId).isPresent()) {
-            log.warn("Onboarding blocked: Professional profile already exists for user ID: {}", userId);
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Professional profile already exists. Use PATCH to update it.");
         }
 
@@ -58,9 +56,11 @@ public class ProfessionalProfileService {
         // Validate specialties
         List<Specialty> foundSpecialties = specialtyRepository.findAllById(dto.specialtyIds());
         if (foundSpecialties.size() != dto.specialtyIds().size()) {
-            log.warn("Onboarding blocked: Invalid specialty IDs for user ID: {}. Expected {}, found {}",
-                    userId, dto.specialtyIds().size(), foundSpecialties.size());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "One or more provided specialty IDs are invalid");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "One or more provided specialty IDs are invalid. Expected %d, but found %d."
+                            .formatted(dto.specialtyIds().size(), foundSpecialties.size())
+            );
         }
 
         //creat professional profile
@@ -81,11 +81,8 @@ public class ProfessionalProfileService {
 
     @Transactional
     public ProfessionalProfile partialUpdate(String userId, UpdateProfessionalProfileDTO dto) {
-        log.info("Starting partial update for professional profile of user ID: {}", userId);
-
         ProfessionalProfile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> {
-                    log.warn("Partial update failed: Professional profile not found for user ID: {}", userId);
                     return new ResponseStatusException(HttpStatus.NOT_FOUND, "Professional profile not found");
                 });
 

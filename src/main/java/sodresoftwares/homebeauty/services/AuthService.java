@@ -1,7 +1,6 @@
 package sodresoftwares.homebeauty.services;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,10 +24,9 @@ import java.time.ZoneOffset;
 
 
 @Service
+@Slf4j
 @Transactional(readOnly = true)
 public class AuthService {
-
-    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
@@ -63,9 +61,9 @@ public class AuthService {
         };
 
         if (!isProfileComplete) {
-            log.warn("User {} logged in with incomplete profile. Role: {}", loggedUser.getLogin(), loggedUser.getRole());
+            log.warn("User ID {} logged in with incomplete profile. Role: {}", loggedUser.getId(), loggedUser.getRole());
         } else {
-            log.info("User authenticated successfully: {}", loggedUser.getLogin());
+            log.info("User ID {} authenticated successfully", loggedUser.getId());
         }
 
         return new LoginResponseDTO(token, loggedUser.getRole(), isProfileComplete);
@@ -103,8 +101,8 @@ public class AuthService {
 
         this.userRepository.save(newUser);
 
-        log.info("New user registered and verification code generated: {}", newUser.getLogin());
 
+        log.info("New user registered and verification code generated: ID {}", newUser.getId());
         // Send verification email
         emailService.sendVerificationCode(newUser.getLogin(), newUser.getFirstName(), code);
     }
@@ -136,7 +134,7 @@ public class AuthService {
 
         userRepository.save(user);
 
-        log.info("Account successfully activated for user: {}", user.getLogin());
+        log.info("Account successfully activated for user ID: {}", user.getId());
     }
 
     @Transactional
@@ -165,7 +163,7 @@ public class AuthService {
         // Send the new verification code via email
         emailService.sendVerificationCode(user.getLogin(), user.getFirstName(), newCode);
 
-        log.info("A new verification code was generated and sent to: {}", login);
+        log.info("A new verification code was generated and sent to user ID: {}", user.getId());
     }
 
     private String generateVerificationCode() {

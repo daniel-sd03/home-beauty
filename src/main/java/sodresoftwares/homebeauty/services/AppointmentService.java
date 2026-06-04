@@ -1,8 +1,7 @@
 package sodresoftwares.homebeauty.services;
 
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,11 +25,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AppointmentService {
-
-    private static final Logger log = LoggerFactory.getLogger(AppointmentService.class);
 
     private final AppointmentRepository appointmentRepository;
     private final ProvidedServiceRepository serviceRepository;
@@ -38,6 +36,8 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponseDTO createAppointment(User LoggedInClient, AppointmentCreateDTO dto) {
+
+        log.info("Client {} is attempting to create an appointment for service {}", LoggedInClient.getId(), dto.providedServicesId());
 
         //get the provided service and validate if it exists
         ProvidedService providedService = serviceRepository.findById(dto.providedServicesId())
@@ -177,8 +177,6 @@ public class AppointmentService {
 
     @Transactional
     public void updateStatus(User loggedInUser, String id, AppointmentStatusUpdateDTO dto) {
-        log.info("Attempting to update status of appointment ID: {} to {}", id, dto.status());
-
         // Fetch the appointment
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found."));
@@ -189,15 +187,12 @@ public class AppointmentService {
 
         // 1. SECURITY: Check if user is part of the appointment
         if (!isProfessional && !isClient) {
-            log.warn("Security breach attempt: User ID {} tried to modify appointment ID {}", loggedInUser.getId(), id);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: You are not part of this appointment.");
         }
 
         // 2. BUSINESS RULE: Clients can only cancel
         if (isClient && !isProfessional) {
             if (dto.status() != AppointmentStatus.CANCELLED) {
-                log.warn("Rule violation: Client ID {} attempted to set status to {} for appointment ID {}",
-                        loggedInUser.getId(), dto.status(), id);
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Clients can only CANCEL appointments. Only professionals can update to other statuses.");
             }
         }
@@ -208,6 +203,6 @@ public class AppointmentService {
         // Save to database
         appointmentRepository.save(appointment);
 
-        log.info("Appointment ID: {} status successfully updated to {}", id, dto.status());
+        log.info("User {} successfully updated Appointment ID {} status to {}", loggedInUser.getId(), id, dto.status());
     }
 }
