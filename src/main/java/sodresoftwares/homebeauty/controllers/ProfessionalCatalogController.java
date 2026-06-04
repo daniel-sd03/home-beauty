@@ -1,6 +1,7 @@
 package sodresoftwares.homebeauty.controllers;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,14 +16,11 @@ import sodresoftwares.homebeauty.services.ProfessionalCatalogService;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/professionals/catalog")
 public class ProfessionalCatalogController {
 
     private final ProfessionalCatalogService catalogService;
-
-    public ProfessionalCatalogController(ProfessionalCatalogService catalogService) {
-        this.catalogService = catalogService;
-    }
 
     @PostMapping("/services")
     public ResponseEntity<Void> addService(
@@ -48,6 +46,14 @@ public class ProfessionalCatalogController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/services/{id}")
+    public ResponseEntity<Void> deleteService(
+            @AuthenticationPrincipal User loggedInUser,
+            @PathVariable String id) {
+        catalogService.deleteService(loggedInUser, id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/working-hours")
     public ResponseEntity<Void> addWorkingHour(
             @AuthenticationPrincipal User loggedInUser,
@@ -69,14 +75,6 @@ public class ProfessionalCatalogController {
             @PathVariable String id,
             @RequestBody @Valid WorkingHourDTO data) {
         catalogService.updateWorkingHour(loggedInUser, id, data);
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/services/{id}")
-    public ResponseEntity<Void> deleteService(
-            @AuthenticationPrincipal User loggedInUser,
-            @PathVariable String id) {
-        catalogService.deleteService(loggedInUser, id);
         return ResponseEntity.noContent().build();
     }
 

@@ -1,6 +1,7 @@
 package sodresoftwares.homebeauty.services;
 
 import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import java.util.List;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ProfessionalProfileService {
 
@@ -27,14 +29,6 @@ public class ProfessionalProfileService {
     private final SpecialtyRepository specialtyRepository;
     private final UserService userService;
 
-    public ProfessionalProfileService(
-            ProfessionalProfileRepository profileRepository,
-            SpecialtyRepository specialtyRepository,
-            UserService userService) {
-        this.profileRepository = profileRepository;
-        this.specialtyRepository = specialtyRepository;
-        this.userService = userService;
-    }
 
     @Transactional
     public ProfessionalProfile onboardProfessional(String userId, ProfessionalOnboardingDTO dto) {

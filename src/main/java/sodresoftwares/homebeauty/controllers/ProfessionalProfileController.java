@@ -1,6 +1,7 @@
 package sodresoftwares.homebeauty.controllers;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -11,14 +12,11 @@ import sodresoftwares.homebeauty.model.user.User;
 import sodresoftwares.homebeauty.services.ProfessionalProfileService;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/professionals/profile")
 public class ProfessionalProfileController {
 
     private final ProfessionalProfileService service;
-
-    public ProfessionalProfileController(ProfessionalProfileService service) {
-        this.service = service;
-    }
 
     @PostMapping("/me/onboarding")
     public ResponseEntity<ProfessionalProfile> onboardMyProfile(

@@ -1,6 +1,7 @@
 package sodresoftwares.homebeauty.services;
 
 import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.util.List;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ProfessionalCatalogService {
 
@@ -29,19 +31,6 @@ public class ProfessionalCatalogService {
     private final ProfessionalBlockRepository blockRepository;
     private final AppointmentRepository appointmentRepository;
 
-    public ProfessionalCatalogService(ProfessionalProfileRepository profileRepository,
-                                      ProvidedServiceRepository providedServiceRepository,
-                                      WorkingHourRepository workingHourRepository,
-                                      CategoryRepository categoryRepository,
-                                      ProfessionalBlockRepository blockRepository,
-                                      AppointmentRepository appointmentRepository) {
-        this.profileRepository = profileRepository;
-        this.providedServiceRepository = providedServiceRepository;
-        this.workingHourRepository = workingHourRepository;
-        this.categoryRepository = categoryRepository;
-        this.blockRepository = blockRepository;
-        this.appointmentRepository = appointmentRepository;
-    }
 
     // Helper method to always get the logged-in professional's profile
     private ProfessionalProfile getCurrentUserProfile(User loggedInUser) {

@@ -1,6 +1,7 @@
 package sodresoftwares.homebeauty.services;
 
 import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,6 +26,7 @@ import java.time.ZoneOffset;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AuthService {
 
@@ -37,15 +39,6 @@ public class AuthService {
 
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public AuthService(AuthenticationManager authenticationManager, UserRepository userRepository,
-                       TokenService tokenService, PasswordEncoder passwordEncoder, ProfessionalProfileRepository profileRepository, EmailService emailService) {
-        this.authenticationManager = authenticationManager;
-        this.userRepository = userRepository;
-        this.tokenService = tokenService;
-        this.passwordEncoder = passwordEncoder;
-        this.profileRepository = profileRepository;
-        this.emailService = emailService;
-    }
 
     public LoginResponseDTO login(AuthenticationDTO data) {
         var usernamePassword = new UsernamePasswordAuthenticationToken(data.login(), data.password());

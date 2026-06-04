@@ -1,25 +1,21 @@
 	package sodresoftwares.homebeauty.controllers;
 
 	import jakarta.validation.Valid;
+	import lombok.RequiredArgsConstructor;
+	import lombok.extern.slf4j.Slf4j;
 	import org.springframework.http.HttpStatus;
 	import org.springframework.http.ResponseEntity;
 	import org.springframework.web.bind.annotation.*;
 	import sodresoftwares.homebeauty.dto.*;
 	import sodresoftwares.homebeauty.services.AuthService;
 
-
- 	import lombok.extern.slf4j.Slf4j;
-
 	@RestController
 	@Slf4j
+	@RequiredArgsConstructor
 	@RequestMapping("/auth")
 	public class AuthenticationController {
 
 		private final AuthService authService;
-
-		public AuthenticationController(AuthService authService) {
-			this.authService = authService;
-		}
 
 		@PostMapping("/login")
 		public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid AuthenticationDTO data) {

@@ -15,8 +15,8 @@ import sodresoftwares.homebeauty.services.AppointmentService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/appointments")
 @RequiredArgsConstructor
+@RequestMapping("/appointments")
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
