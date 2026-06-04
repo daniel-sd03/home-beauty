@@ -1,6 +1,7 @@
 package sodresoftwares.homebeauty.controllers;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -12,14 +13,11 @@ import sodresoftwares.homebeauty.services.AddressService;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/addresses")
 public class AddressController {
 
     private final AddressService addressService;
-
-    public AddressController(AddressService addressService) {
-        this.addressService = addressService;
-    }
 
     @PostMapping
     public ResponseEntity<Void> create(

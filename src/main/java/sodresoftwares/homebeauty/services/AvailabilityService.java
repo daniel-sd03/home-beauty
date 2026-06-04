@@ -1,5 +1,7 @@
 package sodresoftwares.homebeauty.services;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,7 @@ import java.util.List;
 
 
 @Service
+@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AvailabilityService {
 
@@ -26,19 +29,6 @@ public class AvailabilityService {
     private final AppointmentRepository appointmentRepository;
     private final ProfessionalBlockRepository blockRepository;
 
-    public AvailabilityService(
-            ProfessionalProfileRepository profileRepository,
-            ProvidedServiceRepository serviceRepository,
-            WorkingHourRepository workingHourRepository,
-            AppointmentRepository appointmentRepository,
-            ProfessionalBlockRepository blockRepository) {
-
-        this.profileRepository = profileRepository;
-        this.serviceRepository = serviceRepository;
-        this.workingHoursRepository = workingHourRepository;
-        this.appointmentRepository = appointmentRepository;
-        this.blockRepository = blockRepository;
-    }
 
 
     private static final int SLOT_INTERVAL_MINUTES = 30;

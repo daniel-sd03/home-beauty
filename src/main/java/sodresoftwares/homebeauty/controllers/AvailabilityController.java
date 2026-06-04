@@ -1,5 +1,7 @@
 package sodresoftwares.homebeauty.controllers;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,14 +12,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/availability")
 public class AvailabilityController {
 
     private final AvailabilityService availabilityService;
-
-    public AvailabilityController(AvailabilityService availabilityService) {
-        this.availabilityService = availabilityService;
-    }
 
     @GetMapping("/{professionalId}")
     public ResponseEntity<List<LocalDateTime>> getAvailableSlots(

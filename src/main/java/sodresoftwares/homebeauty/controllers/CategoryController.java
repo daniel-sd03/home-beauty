@@ -1,6 +1,7 @@
 package sodresoftwares.homebeauty.controllers;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,14 +12,11 @@ import sodresoftwares.homebeauty.repositories.CategoryRepository;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/categories")
 public class CategoryController {
 
     private final CategoryRepository repository;
-
-    public CategoryController(CategoryRepository repository) {
-        this.repository = repository;
-    }
 
     @PostMapping
     public ResponseEntity<Void> create(@RequestBody @Valid CategoryDTO data) {
