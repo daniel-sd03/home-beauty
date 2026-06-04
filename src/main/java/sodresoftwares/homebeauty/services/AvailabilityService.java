@@ -1,6 +1,5 @@
 package sodresoftwares.homebeauty.services;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +15,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
+
 @Service
 @Transactional(readOnly = true)
 public class AvailabilityService {
@@ -45,11 +44,8 @@ public class AvailabilityService {
     private static final int SLOT_INTERVAL_MINUTES = 30;
 
     public List<LocalDateTime> getAvailableSlots(String professionalId, String serviceId, LocalDate date) {
-        log.info("Calculating available slots for professionalId: {}, serviceId: {}, date: {}", professionalId, serviceId, date);
-
         LocalDate todayUtc = LocalDate.now(ZoneOffset.UTC);
         if (date.isBefore(todayUtc)) {
-            log.warn("Attempted to fetch availability for a past date: {}", date);
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Cannot fetch availability for past dates."
@@ -59,13 +55,11 @@ public class AvailabilityService {
         // 1. Fetch base data
         ProfessionalProfile profile = profileRepository.findById(professionalId)
                 .orElseThrow(() -> {
-                    log.warn("Professional profile not found with ID: {}", professionalId);
                     return new ResponseStatusException(HttpStatus.NOT_FOUND, "Professional profile not found");
                 });
 
         ProvidedService service = serviceRepository.findById(serviceId)
                 .orElseThrow(() -> {
-                    log.warn("Service not found with ID: {}", serviceId);
                     return new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found");
                 });
 
@@ -75,7 +69,6 @@ public class AvailabilityService {
 
         // If the professional doesn't work on this day of the week, return an empty list
         if (workingHour == null) {
-            log.info("Professional {} does not work on {}. Returning empty slots.", professionalId, date.getDayOfWeek());
             return new ArrayList<>();
         }
 
@@ -95,18 +88,12 @@ public class AvailabilityService {
                 startOfDay,
                 endOfDay);
 
-        log.info("Found {} active appointments and {} blocks for professional {} on {}",
-                dayAppointments.size(), dayBlocks.size(), professionalId, date);
-
         // 3. Set the boundaries for the working day
         LocalDateTime startOfWorkDay = date.atTime(workingHour.getStartTime());
         LocalDateTime endOfWorkDay = date.atTime(workingHour.getEndTime());
 
         // 4. Generate the list of available slots
-        List<LocalDateTime> availableSlots = calculateFreeSlots(startOfWorkDay, endOfWorkDay, service.getDurationMinutes(), dayAppointments, dayBlocks);
-
-        log.info("Successfully calculated {} available slots for professional {} on {}", availableSlots.size(), professionalId, date);
-        return availableSlots;
+        return calculateFreeSlots(startOfWorkDay, endOfWorkDay, service.getDurationMinutes(), dayAppointments, dayBlocks);
     }
 
     private List<LocalDateTime> calculateFreeSlots(

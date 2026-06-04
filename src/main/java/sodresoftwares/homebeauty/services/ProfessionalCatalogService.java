@@ -1,5 +1,6 @@
 package sodresoftwares.homebeauty.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Slf4j
 @Transactional(readOnly = true)
 public class ProfessionalCatalogService {
 
@@ -56,6 +58,8 @@ public class ProfessionalCatalogService {
     public void addProvidedService(User loggedInUser, ProvidedServiceDTO data) {
         // 1. Get the current professional profile
         ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
+
+        log.info("Professional profile {} adding new service to category {}", professional.getId(), data.categoryId());
 
         // 2. Get the current category profile
         Category currentCategory = getCategoryById(data.categoryId());
@@ -109,6 +113,8 @@ public class ProfessionalCatalogService {
     public void updateService(User loggedInUser, String serviceId, ProvidedServiceDTO data) {
         ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
 
+        log.info("Professional profile {} updating service {}", professional.getId(), serviceId);
+
         // 1. Find the service by ID
         ProvidedService existingService = providedServiceRepository.findById(serviceId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
@@ -143,6 +149,8 @@ public class ProfessionalCatalogService {
     public void deleteService(User loggedInUser, String serviceId) {
         ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
 
+        log.info("Professional profile {} deleting service {}", professional.getId(), serviceId);
+
         // 1. Find the service by ID
         ProvidedService existingService = providedServiceRepository.findById(serviceId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
@@ -160,6 +168,8 @@ public class ProfessionalCatalogService {
     public void addWorkingHour(User loggedInUser, WorkingHourDTO data) {
         // 1. Get the current professional profile
         ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
+
+        log.info("Professional profile {} adding working hour for {}", professional.getId(), data.dayOfWeek());
 
         // 2. Build the working hour linked to the profile
         WorkingHour newWorkingHour = WorkingHour.builder()
@@ -191,6 +201,8 @@ public class ProfessionalCatalogService {
     public void updateWorkingHour(User loggedInUser, String workingHourId, WorkingHourDTO data) {
         ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
 
+        log.info("Professional profile {} updating working hour {}", professional.getId(), workingHourId);
+
         // 1. Find the working hour by ID
         WorkingHour existingWorkingHour = workingHourRepository.findById(workingHourId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Working hour not found"));
@@ -213,6 +225,8 @@ public class ProfessionalCatalogService {
     public void deleteWorkingHour(User loggedInUser, String workingHourId) {
         ProfessionalProfile professional = getCurrentUserProfile(loggedInUser);
 
+        log.info("Professional profile {} deleting working hour {}", professional.getId(), workingHourId);
+
         // 1. Find the working hour by ID
         WorkingHour existingWorkingHour = workingHourRepository.findById(workingHourId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Working hour not found"));
@@ -231,10 +245,12 @@ public class ProfessionalCatalogService {
         ProfessionalProfile profile = getCurrentUserProfile(loggedInUser);
 
         // Calculate time
-        LocalDateTime checkStart = data.startDateTime().withSecond(0).withNano(0);;
-        LocalDateTime checkEnd = data.endDateTime().withSecond(0).withNano(0);;
+        LocalDateTime checkStart = data.startDateTime().withSecond(0).withNano(0);
+        LocalDateTime checkEnd = data.endDateTime().withSecond(0).withNano(0);
 
-        // valide the block timeline (start must be before end, and cannot be in the past,
+        log.info("Professional profile {} creating schedule block from {} to {}", profile.getId(), checkStart, checkEnd);
+
+        // valid the block timeline (start must be before end, and cannot be in the past,
         // and a single block cannot exceed 30 days)
         validateBlockTimeline(checkStart, checkEnd);
 

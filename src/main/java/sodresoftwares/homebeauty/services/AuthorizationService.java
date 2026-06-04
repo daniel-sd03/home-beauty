@@ -4,9 +4,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import sodresoftwares.homebeauty.repositories.UserRepository;
 
 @Service
+@Transactional(readOnly = true)
 public class AuthorizationService implements UserDetailsService{
 
 	private final UserRepository userRepository;
@@ -17,10 +19,10 @@ public class AuthorizationService implements UserDetailsService{
 	
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		 UserDetails user = userRepository.findByLogin(username);
-	        if (user == null) {
-	            throw new UsernameNotFoundException("User not found");
-	        }
-	        return user;
+	 	UserDetails user = userRepository.findByLogin(username);
+		if (user == null) {
+			throw new UsernameNotFoundException("User not found");
+		}
+		return user;
 	}
 }

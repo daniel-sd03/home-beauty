@@ -1,5 +1,6 @@
 package sodresoftwares.homebeauty.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import sodresoftwares.homebeauty.repositories.StateRepository;
 import java.util.List;
 
 @Service
+@Slf4j
 @Transactional(readOnly = true)
 public class AddressService {
 
@@ -43,6 +45,9 @@ public class AddressService {
 
     @Transactional
     public void createAddress(User loggedInUser, AddressDTO data) {
+
+        log.info("Creating address for user {}: {}, {}", loggedInUser.getId(), data.street(), data.city());
+
         City city = resolveCityAndState(data.city(), data.stateUf(), data.stateName());
 
         Address address = Address.builder()
@@ -59,7 +64,7 @@ public class AddressService {
     }
 
     public List<AddressDTO> getMyAddresses(User loggedInUser) {
-
+        log.info("Fetching addresses for user {}", loggedInUser.getId());
         // Fetch addresses for the logged-in user and map them to DTOs
         return addressRepository.findByUserId(loggedInUser.getId()).stream()
                 .map(address -> new AddressDTO(
@@ -78,6 +83,8 @@ public class AddressService {
 
     @Transactional
     public void updateAddress(User loggedInUser, String addressId, AddressDTO data) {
+
+        log.info("User {} is updating address {}", loggedInUser.getId(), addressId);
 
         // 1. Find the address
         Address existingAddress = addressRepository.findById(addressId)
