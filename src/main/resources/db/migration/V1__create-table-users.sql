@@ -16,7 +16,9 @@ CREATE TABLE users (
     verification_code_expiry TIMESTAMP,
     deletion_requested_at TIMESTAMP DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255)
 );
 
 CREATE TABLE states (
@@ -54,6 +56,8 @@ CREATE TABLE professional_profiles (
     service_radius_km INT DEFAULT 10,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
     CONSTRAINT fk_profile_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
@@ -71,6 +75,8 @@ CREATE TABLE addresses (
     longitude DECIMAL(11, 8),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
     CONSTRAINT fk_address_user FOREIGN KEY (user_id) REFERENCES users(id),
     CONSTRAINT fk_address_city FOREIGN KEY (city_id) REFERENCES cities(id)
 );
@@ -83,6 +89,8 @@ CREATE TABLE working_hours (
     end_time TIME NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
     CONSTRAINT fk_working_hours_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id) ON DELETE CASCADE
 );
 
@@ -94,6 +102,8 @@ CREATE TABLE professional_blocks (
     end_date_time TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
     CONSTRAINT fk_blocks_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id) ON DELETE CASCADE
 );
 
@@ -108,6 +118,8 @@ CREATE TABLE provided_services (
     duration_minutes INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
     CONSTRAINT fk_service_professional FOREIGN KEY (professional_id) REFERENCES professional_profiles(id) ON DELETE CASCADE,
     CONSTRAINT fk_service_category FOREIGN KEY (category_id) REFERENCES categories(id)
 );
@@ -149,6 +161,8 @@ CREATE TABLE appointments (
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
 
     -- Constraints
     CONSTRAINT fk_appointment_client FOREIGN KEY (client_id) REFERENCES users(id),
@@ -168,6 +182,8 @@ CREATE TABLE reviews (
     comment TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
     CONSTRAINT fk_review_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id),
     CONSTRAINT fk_review_client FOREIGN KEY (client_id) REFERENCES users(id),
     CONSTRAINT fk_review_professional FOREIGN KEY (professional_user_id) REFERENCES users(id)

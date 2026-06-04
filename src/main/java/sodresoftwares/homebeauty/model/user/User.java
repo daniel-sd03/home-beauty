@@ -2,20 +2,23 @@ package sodresoftwares.homebeauty.model.user;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.List;
 
 @Entity
 @Table(name = "users")
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -69,23 +72,21 @@ public class User implements UserDetails {
 	@Column(name = "deletion_requested_at")
 	private LocalDateTime deletionRequestedAt;
 
-	@CreationTimestamp
-	@Column(name = "created_at", updatable = false)
+	@CreatedDate
+	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt;
 
-	@UpdateTimestamp
+	@LastModifiedDate
 	@Column(name = "updated_at")
 	private LocalDateTime updatedAt;
 
-	@PrePersist
-	protected void onCreate() {
-		this.createdAt = LocalDateTime.now(ZoneOffset.UTC);
-	}
+	@CreatedBy
+	@Column(name = "created_by", updatable = false)
+	private String createdBy;
 
-	@PreUpdate
-	protected void onUpdate() {
-		this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
-	}
+	@LastModifiedBy
+	@Column(name = "updated_by")
+	private String updatedBy;
 
 	@Override
 	public boolean isEnabled() {
