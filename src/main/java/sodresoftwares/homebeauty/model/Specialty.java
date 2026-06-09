@@ -1,9 +1,6 @@
 package sodresoftwares.homebeauty.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
@@ -15,9 +12,11 @@ import lombok.*;
 @Builder
 @EqualsAndHashCode(of = "id")
 public class Specialty {
+
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(unique = true)
+    @Column(nullable = false, unique = true)
     private String name;
 }
