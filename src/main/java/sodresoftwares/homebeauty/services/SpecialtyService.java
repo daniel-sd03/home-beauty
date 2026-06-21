@@ -1,10 +1,10 @@
-package sodresoftwares.homebeauty.service;
+package sodresoftwares.homebeauty.services;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.dto.SpecialtyRequestDTO;
 import sodresoftwares.homebeauty.dto.SpecialtyResponseDTO;
 import sodresoftwares.homebeauty.model.Specialty;
@@ -21,7 +21,7 @@ public class SpecialtyService {
     @Transactional
     public SpecialtyResponseDTO create(SpecialtyRequestDTO data) {
         if (repository.existsByNameIgnoreCase(data.name())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Specialty name already exists.");
+            throw new AppException(HttpStatus.CONFLICT, "SPECIALTY_ALREADY_EXISTS", "Specialty name already exists.");
         }
 
         Specialty specialty = Specialty.builder()
@@ -39,17 +39,17 @@ public class SpecialtyService {
 
     public SpecialtyResponseDTO findById(String id) {
         Specialty specialty = repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Specialty not found."));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "SPECIALTY_NOT_FOUND", "Specialty not found."));
         return new SpecialtyResponseDTO(specialty);
     }
 
     @Transactional
     public SpecialtyResponseDTO update(String id, SpecialtyRequestDTO data) {
         Specialty specialty = repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Specialty not found."));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "SPECIALTY_NOT_FOUND", "Specialty not found."));
 
         if (!specialty.getName().equalsIgnoreCase(data.name()) && repository.existsByNameIgnoreCase(data.name())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Specialty name already exists.");
+            throw new AppException(HttpStatus.CONFLICT, "SPECIALTY_ALREADY_EXISTS", "Specialty name already exists.");
         }
 
         specialty.setName(data.name());
@@ -59,7 +59,7 @@ public class SpecialtyService {
     @Transactional
     public void delete(String id) {
         if (!repository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Specialty not found.");
+            throw new AppException(HttpStatus.NOT_FOUND, "SPECIALTY_NOT_FOUND", "Specialty not found.");
         }
         repository.deleteById(id);
     }

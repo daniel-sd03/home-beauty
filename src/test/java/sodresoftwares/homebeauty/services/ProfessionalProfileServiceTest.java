@@ -8,7 +8,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.dto.CompleteUserProfileDTO;
 import sodresoftwares.homebeauty.dto.ProfessionalOnboardingDTO;
 import sodresoftwares.homebeauty.dto.UpdateProfessionalProfileDTO;
@@ -24,7 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -109,11 +109,12 @@ class ProfessionalProfileServiceTest {
 
         when(profileRepository.findByUserId("123")).thenReturn(Optional.of(existingProfile));
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
-                service.onboardProfessional("123", dto)
-        );
+        assertThatThrownBy(() -> service.onboardProfessional("123", dto))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+                .hasFieldOrPropertyWithValue("errorCode", "PROFILE_ALREADY_EXISTS")
+                .hasMessage("Professional profile already exists. Use PATCH to update it.");
 
-        assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         verify(userService, never()).completeUserProfile(any(), any());
     }
 
@@ -129,11 +130,12 @@ class ProfessionalProfileServiceTest {
         when(userService.completeUserProfile(eq("123"), any())).thenReturn(mockUser);
         when(specialtyRepository.findAllById(dto.specialtyIds())).thenReturn(List.of(mockSpecialty));
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
-                service.onboardProfessional("123", dto)
-        );
+        assertThatThrownBy(() -> service.onboardProfessional("123", dto))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+                .hasFieldOrPropertyWithValue("errorCode", "INVALID_SPECIALTY_IDS")
+                .hasMessage("One or more provided specialty IDs are invalid. Expected %d, but found %d.".formatted(dto.specialtyIds().size(), List.of(mockSpecialty).size()));
 
-        assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         verify(profileRepository, never()).save(any());
     }
 
@@ -171,11 +173,12 @@ class ProfessionalProfileServiceTest {
 
         when(profileRepository.findByUserId("123")).thenReturn(Optional.empty());
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
-                service.partialUpdate("123", dto)
-        );
+        assertThatThrownBy(() -> service.partialUpdate("123", dto))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("errorCode", "PROFESSIONAL_PROFILE_NOT_FOUND")
+                .hasMessage("Professional profile not found");
 
-        assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         verify(profileRepository, never()).save(any());
     }
 }

@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.enums.AppointmentStatus;
 import sodresoftwares.homebeauty.model.*;
 import sodresoftwares.homebeauty.repositories.*;
@@ -36,8 +36,9 @@ public class AvailabilityService {
     public List<LocalDateTime> getAvailableSlots(String professionalId, String serviceId, LocalDate date) {
         LocalDate todayUtc = LocalDate.now(ZoneOffset.UTC);
         if (date.isBefore(todayUtc)) {
-            throw new ResponseStatusException(
+            throw new AppException(
                     HttpStatus.BAD_REQUEST,
+                    "PAST_DATE_UNAVAILABLE",
                     "Cannot fetch availability for past dates."
             );
         }
@@ -45,12 +46,12 @@ public class AvailabilityService {
         // 1. Fetch base data
         ProfessionalProfile profile = profileRepository.findById(professionalId)
                 .orElseThrow(() -> {
-                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Professional profile not found");
+                    return new AppException(HttpStatus.NOT_FOUND, "PROFESSIONAL_NOT_FOUND", "Professional profile not found");
                 });
 
         ProvidedService service = serviceRepository.findById(serviceId)
                 .orElseThrow(() -> {
-                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found");
+                    return new AppException(HttpStatus.NOT_FOUND, "SERVICE_NOT_FOUND", "Service not found");
                 });
 
         WorkingHour workingHour = workingHoursRepository

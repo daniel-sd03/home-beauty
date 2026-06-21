@@ -8,16 +8,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.dto.SpecialtyRequestDTO;
 import sodresoftwares.homebeauty.dto.SpecialtyResponseDTO;
 import sodresoftwares.homebeauty.model.Specialty;
 import sodresoftwares.homebeauty.repositories.SpecialtyRepository;
-import sodresoftwares.homebeauty.service.SpecialtyService;
 
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -73,10 +73,12 @@ class SpecialtyServiceTest {
         when(repository.existsByNameIgnoreCase(validRequestDTO.name())).thenReturn(true);
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> service.create(validRequestDTO));
+        assertThatThrownBy(() -> service.create(validRequestDTO))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+                .hasFieldOrPropertyWithValue("errorCode", "SPECIALTY_ALREADY_EXISTS")
+                .hasMessage("Specialty name already exists.");
 
-        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
         verify(repository, never()).save(any());
     }
 
@@ -123,10 +125,11 @@ class SpecialtyServiceTest {
         when(repository.findById(MOCK_ID)).thenReturn(Optional.empty());
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> service.findById(MOCK_ID));
-
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertThatThrownBy(() -> service.findById(MOCK_ID))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("errorCode", "SPECIALTY_NOT_FOUND")
+                .hasMessage("Specialty not found.");
     }
 
     // ==================== UPDATE SPECIALTY TESTS ====================
@@ -155,10 +158,11 @@ class SpecialtyServiceTest {
         when(repository.findById(MOCK_ID)).thenReturn(Optional.empty());
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> service.update(MOCK_ID, updateRequestDTO));
-
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertThatThrownBy(() -> service.update(MOCK_ID, updateRequestDTO))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("errorCode", "SPECIALTY_NOT_FOUND")
+                .hasMessage("Specialty not found.");
         verify(repository, never()).save(any());
     }
 
@@ -170,10 +174,11 @@ class SpecialtyServiceTest {
         when(repository.existsByNameIgnoreCase(updateRequestDTO.name())).thenReturn(true);
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> service.update(MOCK_ID, updateRequestDTO));
-
-        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+        assertThatThrownBy(() -> service.update(MOCK_ID, updateRequestDTO))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+                .hasFieldOrPropertyWithValue("errorCode", "SPECIALTY_ALREADY_EXISTS")
+                .hasMessage("Specialty name already exists.");
         verify(repository, never()).save(any());
     }
 
@@ -200,10 +205,11 @@ class SpecialtyServiceTest {
         when(repository.existsById(MOCK_ID)).thenReturn(false);
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> service.delete(MOCK_ID));
-
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertThatThrownBy(() -> service.delete(MOCK_ID))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("errorCode", "SPECIALTY_NOT_FOUND")
+                .hasMessage("Specialty not found.");
         verify(repository, never()).deleteById(any());
     }
 }

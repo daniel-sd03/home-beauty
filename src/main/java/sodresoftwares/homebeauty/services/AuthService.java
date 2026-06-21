@@ -1,18 +1,18 @@
 package sodresoftwares.homebeauty.services;
 
-import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.dto.AuthenticationDTO;
 import sodresoftwares.homebeauty.dto.LoginResponseDTO;
 import sodresoftwares.homebeauty.dto.RegisterDTO;
 import sodresoftwares.homebeauty.dto.VerifyCodeDTO;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.infra.security.TokenService;
 import sodresoftwares.homebeauty.model.user.User;
 import sodresoftwares.homebeauty.model.user.UserRole;
@@ -66,7 +66,7 @@ public class AuthService {
     public void register(RegisterDTO data) {
         // Check if user already exists
         if (this.userRepository.existsByLogin(data.login())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "User already exists");
+            throw new AppException(HttpStatus.CONFLICT, "USER_ALREADY_EXISTS", "User already exists");
         }
 
         // Encrypt the password
@@ -105,19 +105,19 @@ public class AuthService {
         User user = (User) userRepository.findByLogin(data.login());
 
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+            throw new AppException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found");
         }
 
         if (user.isActive()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Account is already active");
+            throw new AppException(HttpStatus.BAD_REQUEST, "ACCOUNT_ALREADY_ACTIVE", "Account is already active");
         }
 
         if (!data.code().equals(user.getVerificationCode())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid verification code");
+            throw new AppException(HttpStatus.BAD_REQUEST, "INVALID_VERIFICATION_CODE", "Invalid verification code");
         }
 
         if (LocalDateTime.now(ZoneOffset.UTC).isAfter(user.getVerificationCodeExpiry())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Verification code expired");
+            throw new AppException(HttpStatus.BAD_REQUEST, "EXPIRED_VERIFICATION_CODE", "Verification code expired");
         }
 
         // Activate account
@@ -136,12 +136,12 @@ public class AuthService {
         User user = (User) userRepository.findByLogin(login);
 
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found.");
+            throw new AppException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found.");
         }
 
         // Check if the user's account is already activated
         if (user.isEnabled()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This account is already activated.");
+            throw new AppException(HttpStatus.BAD_REQUEST, "ACCOUNT_ALREADY_ACTIVE", "This account is already activated.");
         }
 
         // Generate a new verification code
@@ -168,7 +168,7 @@ public class AuthService {
     public void promoteToAdmin(String userId) {
         // search user
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
 
         //set role
         user.setRole(UserRole.ADMIN);
@@ -182,7 +182,7 @@ public class AuthService {
     public void demoteFromAdmin(String userId) {
         //  search user
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
 
         // check if professional profile exists
         boolean isProfessional = profileRepository.findByUserId(user.getId()).isPresent();

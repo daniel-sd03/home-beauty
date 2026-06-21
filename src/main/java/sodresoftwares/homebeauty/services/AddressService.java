@@ -1,12 +1,12 @@
 package sodresoftwares.homebeauty.services;
 
-import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.dto.AddressDTO;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.model.Address;
 import sodresoftwares.homebeauty.model.City;
 import sodresoftwares.homebeauty.model.State;
@@ -85,11 +85,19 @@ public class AddressService {
 
         // 1. Find the address
         Address existingAddress = addressRepository.findById(addressId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Address not found"));
+                .orElseThrow(() -> new AppException(
+                        HttpStatus.NOT_FOUND,
+                        "ADDRESS_NOT_FOUND",
+                        "Address not found."
+                ));
 
         // 2. SECURITY: Verify if the address belongs to the logged-in user
         if (!existingAddress.getUser().getId().equals(loggedInUser.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to edit this address");
+            throw new AppException(
+                    HttpStatus.FORBIDDEN,
+                    "ADDRESS_FORBIDDEN",
+                    "You do not have permission to edit this address."
+            );
         }
 
         // 3. Resolve the city and state (in case the user moved to another city/state)

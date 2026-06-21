@@ -8,7 +8,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.dto.CompleteUserProfileDTO;
 import sodresoftwares.homebeauty.dto.UpdateUserFieldsDTO;
 import sodresoftwares.homebeauty.dto.UserResponseDTO;
@@ -77,9 +77,10 @@ class UserServiceTest {
         when(userRepository.findById("999")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.completeUserProfile("999", completeDto))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("User not found")
-                .extracting("statusCode").isEqualTo(HttpStatus.NOT_FOUND);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("errorCode", "USER_NOT_FOUND")
+                .hasMessage("User not found");
 
         verify(userRepository, never()).save(any());
     }
@@ -111,9 +112,10 @@ class UserServiceTest {
         when(userRepository.findById("999")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.partialUpdate("999", dto))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("User not found")
-                .extracting("statusCode").isEqualTo(HttpStatus.NOT_FOUND);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("errorCode", "USER_NOT_FOUND")
+                .hasMessage("User not found");
 
         verify(userRepository, never()).save(any());
     }

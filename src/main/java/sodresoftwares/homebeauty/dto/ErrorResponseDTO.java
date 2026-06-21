@@ -1,11 +1,11 @@
-package sodresoftwares.homebeauty.infra.exception;
+package sodresoftwares.homebeauty.dto;
 
 import java.time.LocalDateTime;
 
 public record ErrorResponseDTO(
         LocalDateTime timestamp,
-        int status,
-        String error,
+        Integer status,
+        String error,        String errorCode,
         String message,
         String path
 ) {}

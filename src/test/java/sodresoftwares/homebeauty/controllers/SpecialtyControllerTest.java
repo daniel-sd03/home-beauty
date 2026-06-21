@@ -15,7 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import sodresoftwares.homebeauty.dto.SpecialtyRequestDTO;
 import sodresoftwares.homebeauty.dto.SpecialtyResponseDTO;
 import sodresoftwares.homebeauty.infra.security.SecurityFilter;
-import sodresoftwares.homebeauty.service.SpecialtyService;
+import sodresoftwares.homebeauty.services.SpecialtyService;
 
 import java.util.List;
 

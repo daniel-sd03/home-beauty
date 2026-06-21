@@ -9,8 +9,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.dto.AddressDTO;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.model.Address;
 import sodresoftwares.homebeauty.model.City;
 import sodresoftwares.homebeauty.model.State;
@@ -29,7 +29,6 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for AddressService
- *
  * Tests business logic for address management including creation, retrieval, and updates.
  */
 @ExtendWith(MockitoExtension.class)
@@ -266,9 +265,10 @@ class AddressServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> addressService.updateAddress(currentUser, "non-existent", baseUpdateDTO))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
-                .hasMessage("404 NOT_FOUND \"Address not found\"");
+                .hasFieldOrPropertyWithValue("errorCode", "ADDRESS_NOT_FOUND")
+                .hasMessage("Address not found.");
 
         verify(addressRepository).findById("non-existent");
         verify(addressRepository, never()).save(any(Address.class));
@@ -288,9 +288,10 @@ class AddressServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> addressService.updateAddress(currentUser, "other-addr", baseUpdateDTO))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
-                .hasMessage("403 FORBIDDEN \"You do not have permission to edit this address\"");
+                .hasFieldOrPropertyWithValue("errorCode", "ADDRESS_FORBIDDEN")
+                .hasMessage("You do not have permission to edit this address.");
 
         verify(addressRepository).findById("other-addr");
         verify(addressRepository, never()).save(any(Address.class));

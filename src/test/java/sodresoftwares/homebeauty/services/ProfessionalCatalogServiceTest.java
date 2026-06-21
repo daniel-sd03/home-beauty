@@ -9,12 +9,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.dto.ProfessionalBlockDTO;
 import sodresoftwares.homebeauty.dto.ProvidedServiceDTO;
 import sodresoftwares.homebeauty.dto.WorkingHourDTO;
 import sodresoftwares.homebeauty.enums.AppointmentStatus;
 import sodresoftwares.homebeauty.enums.ServiceLocationType;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.model.*;
 import sodresoftwares.homebeauty.model.user.User;
 import sodresoftwares.homebeauty.repositories.*;
@@ -168,8 +168,10 @@ class ProfessionalCatalogServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> catalogService.addProvidedService(currentUser, serviceDTO))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
+                .hasFieldOrPropertyWithValue("errorCode", "PROFESSIONAL_PROFILE_NOT_FOUND")
+                .hasMessage("Access denied: User does not have a professional profile");
 
         verify(providedServiceRepository, never()).save(any(ProvidedService.class));
     }
@@ -187,8 +189,10 @@ class ProfessionalCatalogServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> catalogService.addProvidedService(currentUser, serviceDTO))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("errorCode", "CATEGORY_NOT_FOUND")
+                .hasMessage("Category not found with the provided ID");
 
         verify(providedServiceRepository, never()).save(any(ProvidedService.class));
     }
@@ -267,8 +271,10 @@ class ProfessionalCatalogServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> catalogService.updateService(currentUser, "serv-123", updateDTO))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
+                .hasFieldOrPropertyWithValue("errorCode", "SERVICE_ACCESS_DENIED")
+                .hasMessage("You do not have permission to edit this service");
 
         verify(providedServiceRepository, never()).save(any(ProvidedService.class));
     }
@@ -289,6 +295,23 @@ class ProfessionalCatalogServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw NOT_FOUND when deleting non-existent service")
+    void shouldThrowNotFoundWhenDeletingNonExistentService() {
+        // Arrange
+        when(profileRepository.findByUserId("user-123")).thenReturn(Optional.of(professionalProfile));
+        when(providedServiceRepository.findById("non-existent")).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> catalogService.deleteService(currentUser, "non-existent"))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("errorCode", "SERVICE_NOT_FOUND")
+                .hasMessage("Service not found");
+
+        verify(providedServiceRepository, never()).delete(any(ProvidedService.class));
+    }
+
+    @Test
     @DisplayName("Should throw FORBIDDEN when deleting service of another professional")
     void shouldThrowForbiddenWhenDeletingOtherProfessionalService() {
         // Arrange
@@ -304,8 +327,10 @@ class ProfessionalCatalogServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> catalogService.deleteService(currentUser, "serv-123"))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
+                .hasFieldOrPropertyWithValue("errorCode", "SERVICE_ACCESS_DENIED")
+                .hasMessage("You do not have permission to delete this service");
 
         verify(providedServiceRepository, never()).delete(any(ProvidedService.class));
     }
@@ -386,6 +411,26 @@ class ProfessionalCatalogServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw NOT_FOUND when updating non-existent working hour")
+    void shouldThrowNotFoundWhenUpdatingNonExistentWorkingHour() {
+        // Arrange
+        WorkingHourDTO updateDTO = new WorkingHourDTO(
+                "non-existent", DayOfWeek.TUESDAY, LocalTime.of(8, 0), LocalTime.of(18, 0)
+        );
+        when(profileRepository.findByUserId("user-123")).thenReturn(Optional.of(professionalProfile));
+        when(workingHourRepository.findById("non-existent")).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> catalogService.updateWorkingHour(currentUser, "non-existent", updateDTO))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("errorCode", "WORKING_HOUR_NOT_FOUND")
+                .hasMessage("Working hour not found");
+
+        verify(workingHourRepository, never()).save(any(WorkingHour.class));
+    }
+
+    @Test
     @DisplayName("Should throw FORBIDDEN when updating working hour of another professional")
     void shouldThrowForbiddenWhenUpdatingOtherProfessionalWorkingHour() {
         // Arrange
@@ -405,8 +450,10 @@ class ProfessionalCatalogServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> catalogService.updateWorkingHour(currentUser, "wh-123", updateDTO))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
+                .hasFieldOrPropertyWithValue("errorCode", "WORKING_HOUR_ACCESS_DENIED")
+                .hasMessage("You do not have permission to edit this working hour");
 
         verify(workingHourRepository, never()).save(any(WorkingHour.class));
     }
@@ -427,6 +474,23 @@ class ProfessionalCatalogServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw NOT_FOUND when deleting non-existent working hour")
+    void shouldThrowNotFoundWhenDeletingNonExistentWorkingHour() {
+        // Arrange
+        when(profileRepository.findByUserId("user-123")).thenReturn(Optional.of(professionalProfile));
+        when(workingHourRepository.findById("non-existent")).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> catalogService.deleteWorkingHour(currentUser, "non-existent"))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("errorCode", "WORKING_HOUR_NOT_FOUND")
+                .hasMessage("Working hour not found");
+
+        verify(workingHourRepository, never()).delete(any(WorkingHour.class));
+    }
+
+    @Test
     @DisplayName("Should throw FORBIDDEN when deleting working hour of another professional")
     void shouldThrowForbiddenWhenDeletingOtherProfessionalWorkingHour() {
         // Arrange
@@ -442,8 +506,10 @@ class ProfessionalCatalogServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> catalogService.deleteWorkingHour(currentUser, "wh-123"))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
+                .hasFieldOrPropertyWithValue("errorCode", "WORKING_HOUR_ACCESS_DENIED")
+                .hasMessage("You do not have permission to delete this working hour");
 
         verify(workingHourRepository, never()).delete(any(WorkingHour.class));
     }
@@ -502,8 +568,10 @@ class ProfessionalCatalogServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> catalogService.createBlock(currentUser, blockDTO))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+                .hasFieldOrPropertyWithValue("errorCode", "BLOCK_PAST_DATE")
+                .hasMessage("Cannot create blocks in the past (UTC 0 reference).");
 
         verify(blockRepository, never()).save(any(ProfessionalBlock.class));
     }
@@ -521,8 +589,10 @@ class ProfessionalCatalogServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> catalogService.createBlock(currentUser, blockDTO))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+                .hasFieldOrPropertyWithValue("errorCode", "BLOCK_TOO_LONG")
+                .hasMessage("A single block cannot exceed 30 days.");
 
         verify(blockRepository, never()).save(any(ProfessionalBlock.class));
     }
@@ -546,8 +616,10 @@ class ProfessionalCatalogServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> catalogService.createBlock(currentUser, blockDTO))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+                .hasFieldOrPropertyWithValue("errorCode", "BLOCK_APPOINTMENT_CONFLICT")
+                .hasMessage("It is not possible to block this period because there are already scheduled.");
 
         verify(blockRepository, never()).save(any(ProfessionalBlock.class));
     }
@@ -576,8 +648,10 @@ class ProfessionalCatalogServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> catalogService.createBlock(currentUser, blockDTO))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+                .hasFieldOrPropertyWithValue("errorCode", "BLOCK_OVERLAP_CONFLICT")
+                .hasMessage("Cannot create block: this period overlaps with an already existing block.");
 
         verify(blockRepository, never()).save(any(ProfessionalBlock.class));
     }
@@ -599,4 +673,3 @@ class ProfessionalCatalogServiceTest {
         verify(blockRepository).findByProfessionalIdOrderByStartDateTimeAsc("prof-123");
     }
 }
-

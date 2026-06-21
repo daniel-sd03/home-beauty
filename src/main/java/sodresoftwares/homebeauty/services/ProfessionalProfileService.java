@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.dto.CompleteUserProfileDTO;
 import sodresoftwares.homebeauty.dto.ProfessionalOnboardingDTO;
 import sodresoftwares.homebeauty.dto.UpdateProfessionalProfileDTO;
@@ -34,7 +34,7 @@ public class ProfessionalProfileService {
     public ProfessionalProfile onboardProfessional(String userId, ProfessionalOnboardingDTO dto) {
         // Validate professional profile
         if (profileRepository.findByUserId(userId).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Professional profile already exists. Use PATCH to update it.");
+            throw new AppException(HttpStatus.CONFLICT, "PROFILE_ALREADY_EXISTS", "Professional profile already exists. Use PATCH to update it.");
         }
 
         // Complete User profile
@@ -50,8 +50,9 @@ public class ProfessionalProfileService {
         // Validate specialties
         List<Specialty> foundSpecialties = specialtyRepository.findAllById(dto.specialtyIds());
         if (foundSpecialties.size() != dto.specialtyIds().size()) {
-            throw new ResponseStatusException(
+            throw new AppException(
                     HttpStatus.BAD_REQUEST,
+                    "INVALID_SPECIALTY_IDS",
                     "One or more provided specialty IDs are invalid. Expected %d, but found %d."
                             .formatted(dto.specialtyIds().size(), foundSpecialties.size())
             );
@@ -77,7 +78,7 @@ public class ProfessionalProfileService {
     public ProfessionalProfile partialUpdate(String userId, UpdateProfessionalProfileDTO dto) {
         ProfessionalProfile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> {
-                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Professional profile not found");
+                    return new AppException(HttpStatus.NOT_FOUND, "PROFESSIONAL_PROFILE_NOT_FOUND", "Professional profile not found");
                 });
 
         // Only update fields that are provided (non-null and non-empty)
