@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.dto.ProfessionalBlockDTO;
 import sodresoftwares.homebeauty.dto.ProfessionalBlockResponseDTO;
 import sodresoftwares.homebeauty.dto.ProvidedServiceDTO;
@@ -35,12 +35,12 @@ public class ProfessionalCatalogService {
     // Helper method to always get the logged-in professional's profile
     private ProfessionalProfile getCurrentUserProfile(User loggedInUser) {
         return profileRepository.findByUserId(loggedInUser.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: User does not have a professional profile"));
+                .orElseThrow(() -> new AppException(HttpStatus.FORBIDDEN, "PROFESSIONAL_PROFILE_NOT_FOUND", "Access denied: User does not have a professional profile"));
     }
 
     private Category getCategoryById(String categoryId) {
         return categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found with the provided ID"));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "CATEGORY_NOT_FOUND", "Category not found with the provided ID"));
     }
 
     @Transactional
@@ -106,11 +106,11 @@ public class ProfessionalCatalogService {
 
         // 1. Find the service by ID
         ProvidedService existingService = providedServiceRepository.findById(serviceId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "SERVICE_NOT_FOUND", "Service not found"));
 
         // 2. SECURITY: Check if the service belongs to the logged-in professional
         if (!existingService.getProfessional().getId().equals(professional.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to edit this service");
+            throw new AppException(HttpStatus.FORBIDDEN, "SERVICE_ACCESS_DENIED", "You do not have permission to edit this service");
         }
 
         // 3. Fetch the new category (in case it was changed)
@@ -142,11 +142,11 @@ public class ProfessionalCatalogService {
 
         // 1. Find the service by ID
         ProvidedService existingService = providedServiceRepository.findById(serviceId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "SERVICE_NOT_FOUND", "Service not found"));
 
         // 2. SECURITY: Check if the service belongs to the logged-in professional
         if (!existingService.getProfessional().getId().equals(professional.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to delete this service");
+            throw new AppException(HttpStatus.FORBIDDEN, "SERVICE_ACCESS_DENIED", "You do not have permission to delete this service");
         }
 
         // 3. Delete the service
@@ -194,11 +194,11 @@ public class ProfessionalCatalogService {
 
         // 1. Find the working hour by ID
         WorkingHour existingWorkingHour = workingHourRepository.findById(workingHourId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Working hour not found"));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "WORKING_HOUR_NOT_FOUND", "Working hour not found"));
 
         // 2. SECURITY: Check if the working hour belongs to the logged-in professional
         if (!existingWorkingHour.getProfessional().getId().equals(professional.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to edit this working hour");
+            throw new AppException(HttpStatus.FORBIDDEN, "WORKING_HOUR_ACCESS_DENIED", "You do not have permission to edit this working hour");
         }
 
         // 3. Update the data
@@ -218,11 +218,11 @@ public class ProfessionalCatalogService {
 
         // 1. Find the working hour by ID
         WorkingHour existingWorkingHour = workingHourRepository.findById(workingHourId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Working hour not found"));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "WORKING_HOUR_NOT_FOUND", "Working hour not found"));
 
         // 2. SECURITY: Check if the working hour belongs to the logged-in professional
         if (!existingWorkingHour.getProfessional().getId().equals(professional.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to delete this working hour");
+            throw new AppException(HttpStatus.FORBIDDEN, "WORKING_HOUR_ACCESS_DENIED", "You do not have permission to delete this working hour");
         }
 
         // 3. Delete the working hour
@@ -264,22 +264,25 @@ public class ProfessionalCatalogService {
         LocalDateTime nowUtc = LocalDateTime.now(java.time.ZoneOffset.UTC);
 
         if (start.isBefore(nowUtc)) {
-            throw new ResponseStatusException(
+            throw new AppException(
                     HttpStatus.BAD_REQUEST,
+                    "BLOCK_PAST_DATE",
                     "Cannot create blocks in the past (UTC 0 reference)."
             );
         }
 
         if (start.isAfter(end) || start.isEqual(end)) {
-            throw new ResponseStatusException(
+            throw new AppException(
                     HttpStatus.BAD_REQUEST,
+                    "BLOCK_INVALID_TIMELINE",
                     "The start date and time must be before the end date and time."
             );
         }
 
         if (java.time.temporal.ChronoUnit.DAYS.between(start, end) > 30) {
-            throw new ResponseStatusException(
+            throw new AppException(
                     HttpStatus.BAD_REQUEST,
+                    "BLOCK_TOO_LONG",
                     "A single block cannot exceed 30 days."
             );
         }
@@ -293,8 +296,9 @@ public class ProfessionalCatalogService {
                 AppointmentStatus.CANCELLED);
 
         if (hasConflict) {
-            throw new ResponseStatusException(
+            throw new AppException(
                     HttpStatus.CONFLICT,
+                    "BLOCK_APPOINTMENT_CONFLICT",
                     "It is not possible to block this period because there are already scheduled."
             );
         }
@@ -308,8 +312,9 @@ public class ProfessionalCatalogService {
         );
 
         if (hasConflict) {
-            throw new ResponseStatusException(
+            throw new AppException(
                     HttpStatus.CONFLICT,
+                    "BLOCK_OVERLAP_CONFLICT",
                     "Cannot create block: this period overlaps with an already existing block."
             );
         }

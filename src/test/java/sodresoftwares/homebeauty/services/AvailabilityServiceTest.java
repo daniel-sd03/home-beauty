@@ -7,7 +7,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.enums.AppointmentStatus;
 import sodresoftwares.homebeauty.model.*;
 import sodresoftwares.homebeauty.model.user.User;
@@ -292,10 +293,10 @@ class AvailabilityServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> availabilityService.getAvailableSlots("profile-id", "service-id", pastDate))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("Cannot fetch availability for past dates")
-                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode().value())
-                .isEqualTo(400);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+                .hasFieldOrPropertyWithValue("errorCode", "PAST_DATE_UNAVAILABLE")
+                .hasMessage("Cannot fetch availability for past dates.");
     }
 
     @Test
@@ -306,10 +307,10 @@ class AvailabilityServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> availabilityService.getAvailableSlots("non-existent-id", "service-id", testDate))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("Professional profile not found")
-                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode().value())
-                .isEqualTo(404);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("errorCode", "PROFESSIONAL_NOT_FOUND")
+                .hasMessage("Professional profile not found");
     }
 
     @Test
@@ -321,10 +322,10 @@ class AvailabilityServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> availabilityService.getAvailableSlots("profile-id", "non-existent-service", testDate))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("Service not found")
-                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode().value())
-                .isEqualTo(404);
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("errorCode", "SERVICE_NOT_FOUND")
+                .hasMessage("Service not found");
     }
 
     @Test

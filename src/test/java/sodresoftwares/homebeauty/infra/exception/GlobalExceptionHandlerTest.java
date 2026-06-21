@@ -12,12 +12,12 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.infra.security.SecurityFilter;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -33,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     )
 )
 @AutoConfigureMockMvc(addFilters = false)
-@Import(GlobalExceptionHandlerTest.TestController.class)
+@Import({GlobalExceptionHandlerTest.TestController.class, GlobalExceptionHandler.class})
 @DisplayName("GlobalExceptionHandler Tests")
 class GlobalExceptionHandlerTest {
 
@@ -47,9 +47,9 @@ class GlobalExceptionHandlerTest {
     @RequestMapping("/test")
     static class TestController {
 
-        @PostMapping("/response-status-exception")
-        public void throwResponseStatusException() {
-            throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Test business error");
+        @PostMapping("/app-exception")
+        public void throwAppException() {
+            throw new AppException(HttpStatus.CONFLICT, "TEST_CONFLICT_CODE", "Test generic application error");
         }
 
         @PostMapping("/bad-credentials")
@@ -91,14 +91,15 @@ class GlobalExceptionHandlerTest {
     record TestDTO(@NotBlank String name) {}
 
     @Test
-    @DisplayName("Should handle ResponseStatusException with correct error response")
-    void shouldHandleResponseStatusException() throws Exception {
-        mockMvc.perform(post("/test/response-status-exception"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("400 BAD_REQUEST"))
-                .andExpect(jsonPath("$.message").value("Test business error"))
-                .andExpect(jsonPath("$.path").value("/test/response-status-exception"))
+    @DisplayName("Should handle AppException with custom errorCode and status")
+    void shouldHandleAppException() throws Exception {
+        mockMvc.perform(post("/test/app-exception"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"))
+                .andExpect(jsonPath("$.errorCode").value("TEST_CONFLICT_CODE"))
+                .andExpect(jsonPath("$.message").value("Test generic application error"))
+                .andExpect(jsonPath("$.path").value("/test/app-exception"))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
 
@@ -108,6 +109,7 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(post("/test/bad-credentials"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.errorCode").value("INVALID_CREDENTIALS"))
                 .andExpect(jsonPath("$.error").value("UNAUTHORIZED"))
                 .andExpect(jsonPath("$.message").value("Invalid email or password."))
                 .andExpect(jsonPath("$.path").value("/test/bad-credentials"))
@@ -124,6 +126,7 @@ class GlobalExceptionHandlerTest {
                         .content(objectMapper.writeValueAsString(invalidDto)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("name: must not be blank"))
                 .andExpect(jsonPath("$.path").value("/test/validation-error"))
@@ -138,6 +141,7 @@ class GlobalExceptionHandlerTest {
                         .content("{invalid json"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errorCode").value("MALFORMED_JSON"))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("Malformed JSON request. Please verify the data format, such as correct date/time patterns (e.g., 'HH:mm'), exact Enum values, and proper JSON syntax."))
                 .andExpect(jsonPath("$.path").value("/test/malformed-json"))
@@ -150,6 +154,7 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(get("/test/missing-param"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errorCode").value("MISSING_PARAMETER"))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("Missing required parameter: requiredParam"))
                 .andExpect(jsonPath("$.path").value("/test/missing-param"))
@@ -162,6 +167,7 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(get("/test/type-mismatch/not-a-number"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errorCode").value("TYPE_MISMATCH"))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("Invalid format for parameter: id"))
                 .andExpect(jsonPath("$.path").value("/test/type-mismatch/not-a-number"))
@@ -174,6 +180,7 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(post("/test/disabled-account"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.errorCode").value("ACCOUNT_DISABLED"))
                 .andExpect(jsonPath("$.error").value("Forbidden"))
                 .andExpect(jsonPath("$.message").value("Your account is not activated yet. Please check your email for the verification code."))
                 .andExpect(jsonPath("$.path").value("/test/disabled-account"))
@@ -186,6 +193,7 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(post("/test/generic-exception"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.errorCode").value("INTERNAL_SERVER_ERROR"))
                 .andExpect(jsonPath("$.error").value("Internal Server Error"))
                 .andExpect(jsonPath("$.message").value("An unexpected server error occurred."))
                 .andExpect(jsonPath("$.path").value("/test/generic-exception"))

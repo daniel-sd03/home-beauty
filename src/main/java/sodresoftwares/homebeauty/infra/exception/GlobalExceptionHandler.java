@@ -13,7 +13,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.springframework.web.server.ResponseStatusException;
+import sodresoftwares.homebeauty.dto.ErrorResponseDTO;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -24,20 +24,20 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
-     * Handles business logic and validation errors (e.g., 400 Bad Request, 404 Not Found, 409 Conflict).
-     * This captures the ResponseStatusException thrown from the Service layer.
+     * Handles custom business logic and application-specific errors.
+     * Triggered manually across the application using "throw new AppException(...)".
      */
-    @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<ErrorResponseDTO> handleResponseStatusException(ResponseStatusException ex, HttpServletRequest request) {
-        log.warn("Business rule exception at {}: Status {} - {}", request.getRequestURI(), ex.getStatusCode(), ex.getReason());
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<ErrorResponseDTO> handleAppException(AppException ex, HttpServletRequest request) {
         ErrorResponseDTO error = new ErrorResponseDTO(
                 LocalDateTime.now(),
-                ex.getStatusCode().value(),
-                ex.getStatusCode().toString(),
-                ex.getReason(),
+                ex.getStatus().value(),
+                ex.getStatus().getReasonPhrase(),
+                ex.getErrorCode(),
+                ex.getMessage(),
                 request.getRequestURI()
         );
-        return ResponseEntity.status(ex.getStatusCode()).body(error);
+        return ResponseEntity.status(ex.getStatus()).body(error);
     }
 
     /**
@@ -51,6 +51,7 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now(),
                 HttpStatus.UNAUTHORIZED.value(),
                 "UNAUTHORIZED",
+                "INVALID_CREDENTIALS",
                 "Invalid email or password.",
                 request.getRequestURI()
         );
@@ -74,6 +75,7 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                "VALIDATION_ERROR",
                 errorMessage,
                 request.getRequestURI()
         );
@@ -96,6 +98,7 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 "Bad Request",
+                "MALFORMED_JSON",
                 "Malformed JSON request. Please verify the data format, such as correct date/time patterns (e.g., 'HH:mm'), exact Enum values, and proper JSON syntax.",
                 request.getRequestURI()
         );
@@ -117,6 +120,7 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                "MISSING_PARAMETER",
                 "Missing required parameter: " + ex.getParameterName(),
                 request.getRequestURI()
         );
@@ -138,6 +142,7 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                "TYPE_MISMATCH",
                 "Invalid format for parameter: " + ex.getName(),
                 request.getRequestURI()
         );
@@ -158,6 +163,7 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now(),
                 HttpStatus.FORBIDDEN.value(),
                 HttpStatus.FORBIDDEN.getReasonPhrase(),
+                "ACCOUNT_DISABLED",
                 "Your account is not activated yet. Please check your email for the verification code.",
                 request.getRequestURI()
         );
@@ -176,6 +182,7 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal Server Error",
+                "INTERNAL_SERVER_ERROR",
                 "An unexpected server error occurred.",
                 request.getRequestURI()
         );

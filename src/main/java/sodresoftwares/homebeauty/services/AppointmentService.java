@@ -5,13 +5,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.dto.AppointmentCreateDTO;
 import sodresoftwares.homebeauty.dto.AppointmentResponseDTO;
 import sodresoftwares.homebeauty.dto.AppointmentStatusUpdateDTO;
 import sodresoftwares.homebeauty.enums.AppointmentStatus;
 import sodresoftwares.homebeauty.enums.AppointmentType;
 import sodresoftwares.homebeauty.enums.ServiceLocationType;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.model.Address;
 import sodresoftwares.homebeauty.model.Appointment;
 import sodresoftwares.homebeauty.model.ProfessionalProfile;
@@ -41,7 +41,7 @@ public class AppointmentService {
 
         //get the provided service and validate if it exists
         ProvidedService providedService = serviceRepository.findById(dto.providedServicesId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Provided Service not found."));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "SERVICE_NOT_FOUND", "Provided Service not found."));
 
         // Get the current user professional profile
         ProfessionalProfile profile = providedService.getProfessional();
@@ -89,10 +89,10 @@ public class AppointmentService {
         AppointmentType requestedType = dto.appointmentType();
 
         if (allowedLocation == ServiceLocationType.CLIENT_LOCATION_ONLY && requestedType != AppointmentType.CLIENT_LOCATION) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This service is only available at the client's location.");
+            throw new AppException(HttpStatus.BAD_REQUEST, "LOCATION_TYPE_MISMATCH", "This service is only available at the client's location.");
         }
         if (allowedLocation == ServiceLocationType.PROVIDER_LOCATION_ONLY && requestedType != AppointmentType.PROVIDER_LOCATION) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This service is only available at the professional's location.");
+            throw new AppException(HttpStatus.BAD_REQUEST, "LOCATION_TYPE_MISMATCH", "This service is only available at the professional's location.");
         }
         return requestedType;
     }
@@ -103,21 +103,21 @@ public class AppointmentService {
      */
     private Address resolveAndValidateAddress(String addressId, AppointmentType requestedType, User client, User professionalUser) {
         if (addressId == null || addressId.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Address ID is required.");
+            throw new AppException(HttpStatus.BAD_REQUEST, "MISSING_ADDRESS_ID", "Address ID is required.");
         }
 
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Address not found."));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "ADDRESS_NOT_FOUND", "Address not found."));
 
         if (requestedType == AppointmentType.CLIENT_LOCATION) {
             // The address owner MUST be the logged-in client
             if (!address.getUser().getId().equals(client.getId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: The address must belong to the client.");
+                throw new AppException(HttpStatus.FORBIDDEN, "ADDRESS_ACCESS_DENIED", "Access denied: The address must belong to the client.");
             }
         } else if (requestedType == AppointmentType.PROVIDER_LOCATION) {
             // The address owner MUST be the professional providing the service
             if (!address.getUser().getId().equals(professionalUser.getId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: The address must belong to the selected professional.");
+                throw new AppException(HttpStatus.FORBIDDEN, "ADDRESS_ACCESS_DENIED", "Access denied: The address must belong to the selected professional.");
             }
         }
         return address;
@@ -135,7 +135,7 @@ public class AppointmentService {
         );
 
         if (isTimeSlotTaken) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "The professional already has an appointment scheduled for this time slot.");
+            throw new AppException(HttpStatus.CONFLICT, "TIME_SLOT_UNAVAILABLE", "The professional already has an appointment scheduled for this time slot.");
         }
     }
 
@@ -159,7 +159,7 @@ public class AppointmentService {
 
     public AppointmentResponseDTO getAppointmentById(User loggedInUser, String id) {
         Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found."));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND", "Appointment not found."));
 
         // Security check: only the involved client or professional can view it
         boolean isClient = appointment.getClient().getId().equals(loggedInUser.getId());
@@ -169,7 +169,7 @@ public class AppointmentService {
         boolean isAdmin = loggedInUser.getRole() == sodresoftwares.homebeauty.model.user.UserRole.ADMIN;
 
         if (!(isClient || isProfessional || isAdmin)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: You are not part of this appointment.");
+            throw new AppException(HttpStatus.FORBIDDEN, "APPOINTMENT_ACCESS_DENIED", "Access denied: You are not part of this appointment.");
         }
 
         return new AppointmentResponseDTO(appointment);
@@ -179,7 +179,7 @@ public class AppointmentService {
     public void updateStatus(User loggedInUser, String id, AppointmentStatusUpdateDTO dto) {
         // Fetch the appointment
         Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found."));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND", "Appointment not found."));
 
         // Identify who is trying to update
         boolean isProfessional = appointment.getProfessionalUser().getId().equals(loggedInUser.getId());
@@ -187,13 +187,13 @@ public class AppointmentService {
 
         // 1. SECURITY: Check if user is part of the appointment
         if (!isProfessional && !isClient) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: You are not part of this appointment.");
+            throw new AppException(HttpStatus.FORBIDDEN, "APPOINTMENT_ACCESS_DENIED", "Access denied: You are not part of this appointment.");
         }
 
         // 2. BUSINESS RULE: Clients can only cancel
         if (isClient && !isProfessional) {
             if (dto.status() != AppointmentStatus.CANCELLED) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Clients can only CANCEL appointments. Only professionals can update to other statuses.");
+                throw new AppException(HttpStatus.FORBIDDEN, "UPDATE_STATUS_FORBIDDEN", "Clients can only CANCEL appointments. Only professionals can update to other statuses.");
             }
         }
 

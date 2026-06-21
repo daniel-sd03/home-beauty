@@ -9,13 +9,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.dto.AppointmentCreateDTO;
 import sodresoftwares.homebeauty.dto.AppointmentResponseDTO;
 import sodresoftwares.homebeauty.dto.AppointmentStatusUpdateDTO;
 import sodresoftwares.homebeauty.enums.AppointmentStatus;
 import sodresoftwares.homebeauty.enums.AppointmentType;
 import sodresoftwares.homebeauty.enums.ServiceLocationType;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.model.*;
 import sodresoftwares.homebeauty.model.user.User;
 import sodresoftwares.homebeauty.model.user.UserRole;
@@ -191,9 +191,10 @@ class AppointmentServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> appointmentService.createAppointment(client, validCreateDTO))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
-                .hasMessage("404 NOT_FOUND \"Provided Service not found.\"");
+                .hasFieldOrPropertyWithValue("errorCode", "SERVICE_NOT_FOUND")
+                .hasMessage("Provided Service not found.");
 
         verify(serviceRepository).findById("service-123");
         verify(addressRepository, never()).findById(any());
@@ -217,10 +218,11 @@ class AppointmentServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> appointmentService.createAppointment(client, invalidDTO))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
-                .hasMessage("400 BAD_REQUEST \"This service is only available at the client's location.\"");
-
+                .hasFieldOrPropertyWithValue("errorCode", "LOCATION_TYPE_MISMATCH")
+                .hasMessage("This service is only available at the client's location.");
+        
         verify(serviceRepository).findById("service-123");
         verify(addressRepository, never()).findById(any());
         verify(appointmentRepository, never()).save(any(Appointment.class));
@@ -242,9 +244,10 @@ class AppointmentServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> appointmentService.createAppointment(client, invalidDTO))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
-                .hasMessage("400 BAD_REQUEST \"Address ID is required.\"");
+                .hasFieldOrPropertyWithValue("errorCode", "MISSING_ADDRESS_ID")
+                .hasMessage("Address ID is required.");
 
         verify(serviceRepository).findById("service-123");
         verify(addressRepository, never()).findById(any());
@@ -260,9 +263,10 @@ class AppointmentServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> appointmentService.createAppointment(client, validCreateDTO))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
-                .hasMessage("404 NOT_FOUND \"Address not found.\"");
+                .hasFieldOrPropertyWithValue("errorCode", "ADDRESS_NOT_FOUND")
+                .hasMessage("Address not found.");
 
         verify(serviceRepository).findById("service-123");
         verify(addressRepository).findById("addr-prof");
@@ -287,9 +291,10 @@ class AppointmentServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> appointmentService.createAppointment(client, invalidDTO))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
-                .hasMessage("403 FORBIDDEN \"Access denied: The address must belong to the client.\"");
+                .hasFieldOrPropertyWithValue("errorCode", "ADDRESS_ACCESS_DENIED")
+                .hasMessage("Access denied: The address must belong to the client.");
 
         verify(serviceRepository).findById("service-123");
         verify(addressRepository).findById("addr-prof");
@@ -313,9 +318,10 @@ class AppointmentServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> appointmentService.createAppointment(client, invalidDTO))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
-                .hasMessage("403 FORBIDDEN \"Access denied: The address must belong to the selected professional.\"");
+                .hasFieldOrPropertyWithValue("errorCode", "ADDRESS_ACCESS_DENIED")
+                .hasMessage("Access denied: The address must belong to the selected professional.");
 
         verify(serviceRepository).findById("service-123");
         verify(addressRepository).findById("addr-client");
@@ -334,9 +340,10 @@ class AppointmentServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> appointmentService.createAppointment(client, validCreateDTO))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
-                .hasMessage("409 CONFLICT \"The professional already has an appointment scheduled for this time slot.\"");
+                .hasFieldOrPropertyWithValue("errorCode", "TIME_SLOT_UNAVAILABLE")
+                .hasMessage("The professional already has an appointment scheduled for this time slot.");
 
         verify(serviceRepository).findById("service-123");
         verify(addressRepository).findById("addr-prof");
@@ -421,7 +428,7 @@ class AppointmentServiceTest {
         when(appointmentRepository.findById("apt-123")).thenReturn(Optional.of(testAppointment));
 
         // Act
-        AppointmentResponseDTO result = appointmentService.getAppointmentById(client, "apt-123");
+        AppointmentResponseDTO result = appointmentService.getAppointmentById(professional, "apt-123");
 
         // Assert
         assertThat(result).isNotNull();
@@ -441,7 +448,7 @@ class AppointmentServiceTest {
         when(appointmentRepository.findById("apt-123")).thenReturn(Optional.of(testAppointment));
 
         // Act
-        AppointmentResponseDTO result = appointmentService.getAppointmentById(client, "apt-123");
+        AppointmentResponseDTO result = appointmentService.getAppointmentById(admin, "apt-123");
 
         // Assert
         assertThat(result).isNotNull();
@@ -458,9 +465,10 @@ class AppointmentServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> appointmentService.getAppointmentById(client, "non-existent"))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
-                .hasMessage("404 NOT_FOUND \"Appointment not found.\"");
+                .hasFieldOrPropertyWithValue("errorCode", "APPOINTMENT_NOT_FOUND")
+                .hasMessage("Appointment not found.");
 
         verify(appointmentRepository).findById("non-existent");
     }
@@ -478,9 +486,10 @@ class AppointmentServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> appointmentService.getAppointmentById(otherUser, "apt-123"))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
-                .hasMessage("403 FORBIDDEN \"Access denied: You are not part of this appointment.\"");
+                .hasFieldOrPropertyWithValue("errorCode", "APPOINTMENT_ACCESS_DENIED")
+                .hasMessage("Access denied: You are not part of this appointment.");
 
         verify(appointmentRepository).findById("apt-123");
     }
@@ -496,9 +505,10 @@ class AppointmentServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> appointmentService.updateStatus(professional, "non-existent", updateDTO))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
-                .hasMessage("404 NOT_FOUND \"Appointment not found.\"");
+                .hasFieldOrPropertyWithValue("errorCode", "APPOINTMENT_NOT_FOUND")
+                .hasMessage("Appointment not found.");
 
         verify(appointmentRepository).findById("non-existent");
         verify(appointmentRepository, never()).save(any(Appointment.class));
@@ -559,9 +569,10 @@ class AppointmentServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> appointmentService.updateStatus(client, "apt-123", updateDTO))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
-                .hasMessage("403 FORBIDDEN \"Clients can only CANCEL appointments. Only professionals can update to other statuses.\"");
+                .hasFieldOrPropertyWithValue("errorCode", "UPDATE_STATUS_FORBIDDEN")
+                .hasMessage("Clients can only CANCEL appointments. Only professionals can update to other statuses.");
 
         verify(appointmentRepository, never()).save(any(Appointment.class));
     }
@@ -577,13 +588,11 @@ class AppointmentServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> appointmentService.updateStatus(hacker, "apt-123", updateDTO))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN)
-                .hasMessage("403 FORBIDDEN \"Access denied: You are not part of this appointment.\"");
+                .hasFieldOrPropertyWithValue("errorCode", "APPOINTMENT_ACCESS_DENIED")
+                .hasMessage("Access denied: You are not part of this appointment.");
 
         verify(appointmentRepository, never()).save(any(Appointment.class));
     }
 }
-
-
-

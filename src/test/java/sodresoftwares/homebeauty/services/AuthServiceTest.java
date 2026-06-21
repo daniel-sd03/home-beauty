@@ -13,11 +13,11 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.server.ResponseStatusException;
 import sodresoftwares.homebeauty.dto.AuthenticationDTO;
 import sodresoftwares.homebeauty.dto.LoginResponseDTO;
 import sodresoftwares.homebeauty.dto.RegisterDTO;
 import sodresoftwares.homebeauty.dto.VerifyCodeDTO;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.infra.security.TokenService;
 import sodresoftwares.homebeauty.model.ProfessionalProfile;
 import sodresoftwares.homebeauty.model.user.User;
@@ -303,8 +303,10 @@ class AuthServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> authService.register(registerDTO))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("User already exists");
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+                .hasFieldOrPropertyWithValue("errorCode", "USER_ALREADY_EXISTS")
+                .hasMessage("User already exists");
 
         // Verify interactions
         verify(userRepository).existsByLogin("newuser@test.com");
@@ -351,8 +353,10 @@ class AuthServiceTest {
         when(userRepository.findByLogin("missing@test.com")).thenReturn(null);
 
         assertThatThrownBy(() -> authService.verifyAccount(new VerifyCodeDTO("missing@test.com", "000000")))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("User not found");
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("errorCode", "USER_NOT_FOUND")
+                .hasMessage("User not found");
     }
 
     @Test
@@ -362,8 +366,10 @@ class AuthServiceTest {
         when(userRepository.findByLogin("active@test.com")).thenReturn(active);
 
         assertThatThrownBy(() -> authService.verifyAccount(new VerifyCodeDTO("active@test.com", "111111")))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("Account is already active");
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+                .hasFieldOrPropertyWithValue("errorCode", "ACCOUNT_ALREADY_ACTIVE")
+                .hasMessage("Account is already active");
     }
 
     @Test
@@ -379,8 +385,10 @@ class AuthServiceTest {
         when(userRepository.findByLogin("pending2@test.com")).thenReturn(pending);
 
         assertThatThrownBy(() -> authService.verifyAccount(new VerifyCodeDTO("pending2@test.com", "999999")))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("Invalid verification code");
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+                .hasFieldOrPropertyWithValue("errorCode", "INVALID_VERIFICATION_CODE")
+                .hasMessage("Invalid verification code");
     }
 
     @Test
@@ -396,8 +404,10 @@ class AuthServiceTest {
         when(userRepository.findByLogin("pending3@test.com")).thenReturn(pending);
 
         assertThatThrownBy(() -> authService.verifyAccount(new VerifyCodeDTO("pending3@test.com", "333333")))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("Verification code expired");
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+                .hasFieldOrPropertyWithValue("errorCode", "EXPIRED_VERIFICATION_CODE")
+                .hasMessage("Verification code expired");
     }
 
     // ==================== RESEND VERIFICATION CODE TESTS ====================
@@ -438,8 +448,10 @@ class AuthServiceTest {
         when(userRepository.findByLogin("no-user@test.com")).thenReturn(null);
 
         assertThatThrownBy(() -> authService.resendVerificationCode("no-user@test.com"))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("User not found");
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
+                .hasFieldOrPropertyWithValue("errorCode", "USER_NOT_FOUND")
+                .hasMessage("User not found.");
     }
 
     @Test
@@ -449,8 +461,10 @@ class AuthServiceTest {
         when(userRepository.findByLogin("already@test.com")).thenReturn(active);
 
         assertThatThrownBy(() -> authService.resendVerificationCode("already@test.com"))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("This account is already activated");
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST)
+                .hasFieldOrPropertyWithValue("errorCode", "ACCOUNT_ALREADY_ACTIVE")
+                .hasMessage("This account is already activated.");
     }
 
     // ==================== PROMOTE TO ADMIN TESTS ====================
@@ -489,9 +503,10 @@ class AuthServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> authService.promoteToAdmin("non-existent"))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
-                .hasMessage("404 NOT_FOUND \"User not found\"");
+                .hasFieldOrPropertyWithValue("errorCode", "USER_NOT_FOUND")
+                .hasMessage("User not found");
 
         verify(userRepository).findById("non-existent");
         verify(userRepository, never()).save(any(User.class));
@@ -568,9 +583,10 @@ class AuthServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> authService.demoteFromAdmin("non-existent"))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(AppException.class)
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
-                .hasMessage("404 NOT_FOUND \"User not found\"");
+                .hasFieldOrPropertyWithValue("errorCode", "USER_NOT_FOUND")
+                .hasMessage("User not found");
 
         verify(userRepository).findById("non-existent");
         verify(profileRepository, never()).findByUserId(anyString());

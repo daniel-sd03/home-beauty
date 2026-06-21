@@ -6,7 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sodresoftwares.homebeauty.dto.SpecialtyRequestDTO;
 import sodresoftwares.homebeauty.dto.SpecialtyResponseDTO;
-import sodresoftwares.homebeauty.service.SpecialtyService;
+import sodresoftwares.homebeauty.services.SpecialtyService;
 
 import java.util.List;
 

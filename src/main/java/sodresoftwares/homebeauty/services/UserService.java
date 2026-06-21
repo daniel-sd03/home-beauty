@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.dto.CompleteUserProfileDTO;
 import sodresoftwares.homebeauty.dto.UpdateUserFieldsDTO;
 import sodresoftwares.homebeauty.dto.UserResponseDTO;
@@ -27,7 +27,7 @@ public class UserService {
     public User completeUserProfile(String userId, CompleteUserProfileDTO dto) {
         log.info("User {} completed their full profile", userId);
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
 
         user.setPhone(dto.phone());
         user.setCpf(dto.cpf());
@@ -41,7 +41,7 @@ public class UserService {
     public User partialUpdate(String userId, UpdateUserFieldsDTO dto) {
         log.info("User {} partially updated their profile", userId);
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
 
         if (dto.firstName() != null && !dto.firstName().trim().isEmpty()) {
             user.setFirstName(dto.firstName().trim());
