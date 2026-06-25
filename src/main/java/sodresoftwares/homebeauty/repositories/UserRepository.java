@@ -11,6 +11,7 @@ import java.util.List;
 public interface UserRepository extends JpaRepository<User, String> {
     UserDetails findByLogin(String login);
     boolean existsByLogin(String login);
+    boolean existsByCpf(String cpf);
 
     @Query("SELECT u FROM User u WHERE LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) " +
             "OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%')) " +

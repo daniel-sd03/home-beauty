@@ -1,14 +1,14 @@
 package sodresoftwares.homebeauty.services;
 
-import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.dto.CompleteUserProfileDTO;
 import sodresoftwares.homebeauty.dto.UpdateUserFieldsDTO;
 import sodresoftwares.homebeauty.dto.UserResponseDTO;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.model.user.User;
 import sodresoftwares.homebeauty.repositories.UserRepository;
 
@@ -28,6 +28,10 @@ public class UserService {
         log.info("User {} completed their full profile", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
+
+        if (userRepository.existsByCpf(dto.cpf())) {
+            throw new AppException(HttpStatus.CONFLICT, "CPF_ALREADY_EXISTS", "This CPF is already registered to another account.");
+        }
 
         user.setPhone(dto.phone());
         user.setCpf(dto.cpf());
