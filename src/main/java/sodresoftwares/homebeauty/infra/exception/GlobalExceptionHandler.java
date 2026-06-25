@@ -69,16 +69,27 @@ public class GlobalExceptionHandler {
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
 
+        String firstFailingField = ex.getBindingResult().getFieldErrors().isEmpty()
+                ? "unknown"
+                : ex.getBindingResult().getFieldErrors().get(0).getField();
+
+        String errorCode = switch (firstFailingField.toLowerCase()) {
+            case "cpf" -> "INVALID_CPF";
+            case "email", "login" -> "INVALID_EMAIL";
+            default -> "VALIDATION_ERROR";
+        };
+
         log.warn("Validation error at {}: {}", request.getRequestURI(), errorMessage);
 
         ErrorResponseDTO error = new ErrorResponseDTO(
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                "VALIDATION_ERROR",
+                errorCode,
                 errorMessage,
                 request.getRequestURI()
         );
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
@@ -137,6 +148,7 @@ public class GlobalExceptionHandler {
             MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
 
         log.warn("Type mismatch for parameter at {}: {}", request.getRequestURI(), ex.getMessage());
+
 
         ErrorResponseDTO error = new ErrorResponseDTO(
                 LocalDateTime.now(),
