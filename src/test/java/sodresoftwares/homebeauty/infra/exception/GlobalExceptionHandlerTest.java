@@ -3,6 +3,7 @@ package sodresoftwares.homebeauty.infra.exception;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,10 +21,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.*;
 import sodresoftwares.homebeauty.infra.security.SecurityFilter;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 
 @WebMvcTest(
     controllers = GlobalExceptionHandlerTest.TestController.class,
@@ -62,6 +65,10 @@ class GlobalExceptionHandlerTest {
             // This will trigger MethodArgumentNotValidException
         }
 
+         @PostMapping("/validation-email-error")
+         public void throwEmailValidationException(@Valid @RequestBody TestCpfDTO dto) {}
+
+
         @PostMapping("/malformed-json")
         public void throwMalformedJson(@RequestBody Object dummy) {
             // This will be triggered by sending invalid JSON
@@ -89,6 +96,8 @@ class GlobalExceptionHandlerTest {
     }
 
     record TestDTO(@NotBlank String name) {}
+
+    record TestCpfDTO(@Email String email, String cpf) {}
 
     @Test
     @DisplayName("Should handle AppException with custom errorCode and status")
@@ -126,11 +135,25 @@ class GlobalExceptionHandlerTest {
                         .content(objectMapper.writeValueAsString(invalidDto)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.message").value("name: must not be blank"))
                 .andExpect(jsonPath("$.path").value("/test/validation-error"))
                 .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    @DisplayName("Should handle MethodArgumentNotValidException with dynamic INVALID_EMAIL errorCode")
+    void shouldHandleEmailValidationException() throws Exception {
+        TestCpfDTO invalidDto = new TestCpfDTO("email-invalido", "123");
+
+        mockMvc.perform(post("/test/validation-email-error")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errorCode").value("INVALID_EMAIL")) // Valida a inteligência do switch dinâmico!
+                .andExpect(jsonPath("$.message").value (containsString("email")));
     }
 
     @Test
