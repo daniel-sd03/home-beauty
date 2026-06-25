@@ -8,10 +8,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.dto.CompleteUserProfileDTO;
 import sodresoftwares.homebeauty.dto.UpdateUserFieldsDTO;
 import sodresoftwares.homebeauty.dto.UserResponseDTO;
+import sodresoftwares.homebeauty.infra.exception.AppException;
 import sodresoftwares.homebeauty.model.user.User;
 import sodresoftwares.homebeauty.model.user.UserRole;
 import sodresoftwares.homebeauty.repositories.UserRepository;
@@ -59,6 +59,7 @@ class UserServiceTest {
     @DisplayName("Should complete user profile successfully")
     void completeUserProfileSuccess() {
         when(userRepository.findById("123")).thenReturn(Optional.of(mockUser));
+        when(userRepository.existsByCpf(completeDto.cpf())).thenReturn(false);
         when(userRepository.save(any(User.class))).thenReturn(mockUser);
 
         User result = userService.completeUserProfile("123", completeDto);
@@ -81,6 +82,24 @@ class UserServiceTest {
                 .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND)
                 .hasFieldOrPropertyWithValue("errorCode", "USER_NOT_FOUND")
                 .hasMessage("User not found");
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should throw 409 Conflict when trying to use an already registered CPF")
+    void completeUserProfileThrowsConflictWhenCpfExists() {
+        // Arrange:
+        when(userRepository.findById("123")).thenReturn(Optional.of(mockUser));
+        when(userRepository.existsByCpf(completeDto.cpf())).thenReturn(true);
+
+        // Act & Assert:
+        assertThatThrownBy(() -> userService.completeUserProfile("123", completeDto))
+                .isInstanceOf(AppException.class)
+                .hasFieldOrPropertyWithValue("status", HttpStatus.CONFLICT)
+                .hasFieldOrPropertyWithValue("errorCode", "CPF_ALREADY_EXISTS")
+                .hasMessage("This CPF is already registered to another account.");
+
 
         verify(userRepository, never()).save(any());
     }
